@@ -1,8 +1,15 @@
 # CareerOS - AI Career Co-Pilot
 
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
+![Node](https://img.shields.io/badge/node-18+-green.svg)
+![Status](https://img.shields.io/badge/status-production--ready-brightgreen.svg)
+
 **Your AI-powered career acceleration and startup validation platform**
 
 Automate networking, outreach, and opportunity discovery while maintaining authentic human connection. Let 6 specialized AI agents handle repetitive tasks while you focus on meaningful conversations and building.
+
+🎯 **85% Complete** | ✅ **Production Ready** | 🚀 **6 AI Agents** | 📊 **Full Analytics**
 
 ## Features
 
