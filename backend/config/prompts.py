@@ -123,3 +123,133 @@ Hi {recipient_name},
 {closing}
 {user_name}
 """
+
+# Research Internship Specific Prompts
+
+RESEARCH_DISCOVERY_PROMPT = """
+You are discovering researchers for a research internship campaign.
+
+**Your Goals**:
+1. Find researchers actively publishing in the target areas
+2. Prioritize researchers at target universities/institutions
+3. Verify they have active labs (recent publications, funding)
+4. Assess match quality based on user's research interests
+5. Filter out researchers not taking interns (if detectable)
+
+**Quality Criteria for Researchers**:
+- Recent publications (last 2 years)
+- Active lab with clear research direction
+- At target institutions (if specified)
+- Research overlap with user interests (>50% match)
+- Reasonable lab size (not too large to ignore interns)
+
+**Output Format**:
+For each researcher provide:
+- Name, affiliation, email
+- Top 3 recent publications (title, year)
+- Research areas/interests
+- Lab URL
+- Match score (1-10) with reasoning
+- Recommended approach angle
+"""
+
+RESEARCH_OUTREACH_CRITERIA = """
+Research internship emails have UNIQUE requirements compared to industry outreach:
+
+**Critical Requirements**:
+1. **Academic Specificity** (30 points):
+   - Reference SPECIFIC recent paper (by title)
+   - Mention SPECIFIC methodology or finding (not just "I read your paper")
+   - Show you understand their research (cite technical details)
+
+2. **Technical Credibility** (25 points):
+   - Demonstrate YOUR relevant technical background
+   - Reference YOUR related project/research
+   - Show technical depth (not surface-level interest)
+
+3. **Clear Research Fit** (20 points):
+   - Explain WHY their lab specifically (not generic)
+   - Connect your interests to their current work
+   - Show you know their research direction
+
+4. **Appropriate Length** (10 points):
+   - 150-200 words (professors are busy)
+   - Concise but substantive
+   - Every sentence adds value
+
+5. **Respectful Ask** (15 points):
+   - Ask about research opportunities (not "give me internship")
+   - Mention timeline (Summer 2025, etc.)
+   - Offer to share CV/research statement
+   - Respect their time (quick call/email exchange)
+
+**BAD Example**:
+"I read your papers and find them interesting. I am a student interested in ML. 
+Do you have internship opportunities?"
+
+**GOOD Example**:
+"I read your recent CVPR paper on self-supervised learning with momentum encoders. 
+Your approach to handling distribution shift particularly resonated with my work on 
+domain adaptation for medical imaging. I implemented a similar contrastive framework 
+and achieved 12% improvement on our chest X-ray dataset. I'm exploring research 
+internships for Summer 2025 and would love to discuss potential opportunities in your lab."
+
+Minimum Score: 80/100 (higher bar than industry outreach)
+"""
+
+RESEARCH_EMAIL_TEMPLATE = """
+Subject: Research Internship Inquiry - {research_area}
+
+Dear Professor {recipient_name},
+
+{specific_paper_reference_with_technical_detail}
+
+{your_relevant_research_or_project}
+
+{connection_between_their_work_and_yours}
+
+{internship_inquiry_with_timeline}
+
+{offer_to_share_materials}
+
+Best regards,
+{user_name}
+{user_affiliation}
+"""
+
+# Research Match Scoring Guidelines
+
+RESEARCH_MATCH_CRITERIA = """
+Score researcher matches on these dimensions:
+
+1. **Research Overlap** (0-4 points):
+   - 4: Direct overlap (same specific area, e.g., both in NLP transformers)
+   - 3: Strong overlap (same field, e.g., both in NLP)
+   - 2: Adjacent fields (e.g., NLP + computer vision)
+   - 1: Related (e.g., ML + systems)
+   - 0: Unrelated
+
+2. **Publication Activity** (0-2 points):
+   - 2: 3+ publications in last year
+   - 1: 1-2 publications in last year
+   - 0: No recent publications
+
+3. **Lab Status** (0-2 points):
+   - 2: Active lab with clear direction
+   - 1: Small/emerging lab
+   - 0: No clear lab presence
+
+4. **Target Institution** (0-1 point):
+   - 1: At user's target university
+   - 0: Not specified or different
+
+5. **Citation Impact** (0-1 point):
+   - 1: Well-cited researcher (h-index > 15)
+   - 0: Early career or low citations
+
+Total: 0-10 points
+Recommended: 7+ points (high priority)
+Acceptable: 5-6 points (medium priority)
+Skip: <5 points (low priority)
+"""
+

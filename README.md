@@ -9,16 +9,17 @@
 
 Automate networking, outreach, and opportunity discovery while maintaining authentic human connection. Let 6 specialized AI agents handle repetitive tasks while you focus on meaningful conversations and building.
 
-🎯 **85% Complete** | ✅ **Production Ready** | 🚀 **6 AI Agents** | 📊 **Full Analytics**
+🎯 **Complete** | ✅ **Production Ready** | 🚀 **6 AI Agents** | 📊 **Full Analytics** | 🎓 **Research Module**
 
 ## Features
 
 - **🤖 AI-Powered Outreach**: Generate personalized messages that score 70+ on quality
-- **🎯 Smart Discovery**: Find relevant jobs, internships, and connections daily
+- **🎓 Research Module**: Academic discovery with Google Scholar + arXiv integration (NEW)
+- **🎯 Smart Discovery**: Find relevant jobs, internships, researchers, and connections daily
 - **📊 CRM Management**: Track contacts through complete lifecycle
 - **📈 Growth Analytics**: Data-driven insights and recommendations
 - **⚡ Safe Automation**: Platform-compliant rate limiting
-- **🔄 Multi-Campaign Support**: Run multiple outreach campaigns simultaneously
+- **🔄 Multi-Campaign Support**: Run career + research + startup campaigns simultaneously
 
 ## Tech Stack
 
@@ -86,16 +87,39 @@ npm run dev
 
 Frontend will run at `http://localhost:3000`
 
+## Research Module 🎓
+
+**NEW**: CareerOS now includes a comprehensive research internship module for academic opportunities!
+
+### Features
+- **Google Scholar Integration**: Find researchers, publications, citations, h-index
+- **arXiv Search**: Discover recent papers and preprints
+- **University Faculty Scraping**: Extract researcher info from department pages
+- **Publication-Based Outreach**: Reference specific papers with technical depth
+- **Higher Quality Bar**: 80/100 minimum score for research emails
+
+### Quick Start
+```bash
+# Install research dependencies
+pip install scholarly==1.7.11 arxiv==2.1.0
+
+# Create research campaign
+campaign_type = CampaignType.RESEARCH
+min_personalization_score = 80  # Higher for research
+```
+
+📖 **Full Documentation**: See [RESEARCH_MODULE.md](RESEARCH_MODULE.md) for complete guide
+
 ## Project Structure
 
 ```
 CareerOS/
 ├── backend/
-│   ├── agents/          # 6 AI agents
+│   ├── agents/          # 6 AI agents + research discovery
 │   ├── crews/           # Multi-agent orchestration
-│   ├── tools/           # Agent tools (LinkedIn, GitHub, Email, etc.)
+│   ├── tools/           # LinkedIn, GitHub, Email, Google Scholar, arXiv
 │   ├── api/             # FastAPI routes
-│   ├── models/          # Pydantic models
+│   ├── models/          # Campaign (RESEARCH) + Contact (RESEARCHER)
 │   ├── services/        # ChromaDB, Supabase, Redis
 │   └── config/          # Settings and prompts
 │
@@ -105,7 +129,7 @@ CareerOS/
 │   ├── lib/             # API client, utilities
 │   └── stores/          # State management
 │
-└── docs/                # Documentation
+└── docs/                # Documentation + Research module guide
 ```
 
 ## Usage

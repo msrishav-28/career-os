@@ -7,6 +7,7 @@ from enum import Enum
 class CampaignType(str, Enum):
     """Type of campaign"""
     CAREER = "career"
+    RESEARCH = "research"
     BETA_ACQUISITION = "beta_acquisition"
     VALIDATION = "validation"
     PARTNERSHIP = "partnership"

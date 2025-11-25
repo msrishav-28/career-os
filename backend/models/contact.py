@@ -7,6 +7,7 @@ from enum import Enum
 class ContactType(str, Enum):
     """Type of contact"""
     CAREER = "career"
+    RESEARCHER = "researcher"
     BETA_USER = "beta_user"
     PARTNERSHIP = "partnership"
     VALIDATION = "validation"
@@ -34,6 +35,9 @@ class Contact(BaseModel):
     github_username: Optional[str] = None
     company: Optional[str] = None
     title: Optional[str] = None
+    lab_url: Optional[HttpUrl] = None  # For researchers: lab website
+    research_areas: List[str] = []  # For researchers: research interests
+    publications: List[Dict] = []  # For researchers: recent publications
     tags: List[str] = []
     source: Optional[str] = None  # "linkedin_search", "github_contributor", etc.
     contact_type: ContactType = ContactType.CAREER
@@ -56,6 +60,9 @@ class ContactCreate(BaseModel):
     github_username: Optional[str] = None
     company: Optional[str] = None
     title: Optional[str] = None
+    lab_url: Optional[HttpUrl] = None
+    research_areas: List[str] = []
+    publications: List[Dict] = []
     tags: List[str] = []
     source: Optional[str] = None
     contact_type: ContactType = ContactType.CAREER
@@ -70,6 +77,9 @@ class ContactUpdate(BaseModel):
     linkedin_url: Optional[HttpUrl] = None
     company: Optional[str] = None
     title: Optional[str] = None
+    lab_url: Optional[HttpUrl] = None
+    research_areas: Optional[List[str]] = None
+    publications: Optional[List[Dict]] = None
     tags: Optional[List[str]] = None
     status: Optional[ContactStatus] = None
     quality_score: Optional[int] = None

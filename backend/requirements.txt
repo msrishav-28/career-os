@@ -36,6 +36,10 @@ playwright==1.41.2
 requests==2.31.0
 lxml==5.1.0
 
+# Academic Research Tools
+scholarly==1.7.11
+arxiv==2.1.0
+
 # Email & Communication
 resend==0.7.0
 python-linkedin-v2==0.0.1

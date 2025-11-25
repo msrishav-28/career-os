@@ -20,6 +20,12 @@ from .email_tools import (
     EmailTemplateTool,
     CheckEmailStatusTool
 )
+from .academic_tools import (
+    GoogleScholarTool,
+    ArXivSearchTool,
+    UniversityFacultyScraperTool,
+    ResearchMatchScoringTool
+)
 
 __all__ = [
     # ChromaDB Tools
@@ -40,4 +46,9 @@ __all__ = [
     'SendEmailTool',
     'EmailTemplateTool',
     'CheckEmailStatusTool',
+    # Academic Research Tools
+    'GoogleScholarTool',
+    'ArXivSearchTool',
+    'UniversityFacultyScraperTool',
+    'ResearchMatchScoringTool',
 ]
