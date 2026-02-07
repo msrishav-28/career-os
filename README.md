@@ -1,266 +1,75 @@
-# CareerOS - AI Career Co-Pilot
+# CareerOS
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
-![Node](https://img.shields.io/badge/node-18+-green.svg)
-![Status](https://img.shields.io/badge/status-production--ready-brightgreen.svg)
+![Python](https://img.shields.io/badge/Python-3.11%2B-blue?style=for-the-badge&logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-black?style=for-the-badge&logo=next.js&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
-**Your AI-powered career acceleration and startup validation platform**
+CareerOS is an AI-powered platform designed to accelerate career growth and networking through automation. It leverages a multi-agent system to discover opportunities, manage professional relationships, and automate outreach, allowing users to focus on high-value interactions.
 
-Automate networking, outreach, and opportunity discovery while maintaining authentic human connection. Let 6 specialized AI agents handle repetitive tasks while you focus on meaningful conversations and building.
+## Key Features
 
-🎯 **Complete** | ✅ **Production Ready** | 🚀 **6 AI Agents** | 📊 **Full Analytics** | 🎓 **Research Module**
+*   **Multi-Agent Architecture**: Orchestrates six specialized AI agents for discovery, outreach, research, and profile management.
+*   **Intelligent Discovery**: Automates the search for job opportunities, GitHub repositories, and research papers (via arXiv and Google Scholar).
+*   **Personalized Outreach**: Generates context-aware, high-quality messages for LinkedIn and email using LLMs.
+*   **Research Module**: Specialized capabilities for academic discovery, including faculty scraping and publication matching.
+*   **CRM & Analytics**: comprehensive dashboard for tracking contacts, campaigns, and engagement metrics.
+*   **Production Ready**: Fully dockerized with CI/CD pipelines and scalable infrastructure.
 
-## Features
+## Architecture Overview
 
-- **🤖 AI-Powered Outreach**: Generate personalized messages that score 70+ on quality
-- **🎓 Research Module**: Academic discovery with Google Scholar + arXiv integration (NEW)
-- **🎯 Smart Discovery**: Find relevant jobs, internships, researchers, and connections daily
-- **📊 CRM Management**: Track contacts through complete lifecycle
-- **📈 Growth Analytics**: Data-driven insights and recommendations
-- **⚡ Safe Automation**: Platform-compliant rate limiting
-- **🔄 Multi-Campaign Support**: Run career + research + startup campaigns simultaneously
-
-## Tech Stack
+The system is split into two core components:
 
 ### Backend
-- **Framework**: CrewAI + FastAPI
-- **AI**: GPT-4o-mini via OpenAI
-- **Vector DB**: ChromaDB (RAG)
-- **Database**: Supabase (PostgreSQL)
-- **Queue**: Redis + Celery
-- **Tools**: Selenium, BeautifulSoup, Playwright
+*   **Framework**: FastAPI (Python)
+*   **AI Engine**: CrewAI + LangChain + OpenAI GPT-4
+*   **Database**: Supabase (PostgreSQL) + ChromaDB (Vector Store)
+*   **Task Queue**: Celery + Redis
 
 ### Frontend
-- **Framework**: Next.js 14 (App Router)
-- **Styling**: Tailwind CSS
-- **Components**: shadcn/ui
-- **Animation**: Framer Motion
-- **Icons**: Lucide React
+*   **Framework**: Next.js 14 (App Router)
+*   **Styling**: Tailwind CSS + Shadcn UI
+*   **State Management**: Zustand
 
 ## Quick Start
 
 ### Prerequisites
-- Python 3.10+
-- Node.js 18+
-- PostgreSQL (via Supabase)
-- Redis
-- OpenAI API key
+*   Docker and Docker Compose
+*   OpenAI API Key
+*   Supabase Account
 
-### Backend Setup
+### Installation
 
-```bash
-cd backend
+1.  **Clone the repository**
+    ```bash
+    git clone https://github.com/msrishav-28/career-os.git
+    cd career-os
+    ```
 
-# Install dependencies
-pip install -r requirements.txt
+2.  **Configure Environment**
+    Create a `.env` file in the root directory (see `env.example` for reference).
 
-# Configure environment
-cp .env.example .env
-# Edit .env with your credentials
+3.  **Start Services**
+    ```bash
+    docker-compose up -d
+    ```
 
-# Setup database (run SQL in Supabase)
-# Copy scripts/setup_db.sql to Supabase SQL Editor
+The application will be available at:
+*   **Frontend**: http://localhost:3000
+*   **Backend API**: http://localhost:8000
+*   **API Documentation**: http://localhost:8000/docs
 
-# Start server
-uvicorn api.main:app --reload
-```
+## Documentation
 
-Backend will run at `http://localhost:8000`
-API docs: `http://localhost:8000/docs`
-
-### Frontend Setup
-
-```bash
-cd frontend
-
-# Install dependencies
-npm install
-
-# Configure environment
-cp .env.local.example .env.local
-# Edit .env.local with your API URL
-
-# Start development server
-npm run dev
-```
-
-Frontend will run at `http://localhost:3000`
-
-## Research Module 🎓
-
-**NEW**: CareerOS now includes a comprehensive research internship module for academic opportunities!
-
-### Features
-- **Google Scholar Integration**: Find researchers, publications, citations, h-index
-- **arXiv Search**: Discover recent papers and preprints
-- **University Faculty Scraping**: Extract researcher info from department pages
-- **Publication-Based Outreach**: Reference specific papers with technical depth
-- **Higher Quality Bar**: 80/100 minimum score for research emails
-
-### Quick Start
-```bash
-# Install research dependencies
-pip install scholarly==1.7.11 arxiv==2.1.0
-
-# Create research campaign
-campaign_type = CampaignType.RESEARCH
-min_personalization_score = 80  # Higher for research
-```
-
-📖 **Full Documentation**: See [RESEARCH_MODULE.md](RESEARCH_MODULE.md) for complete guide
-
-## Project Structure
-
-```
-CareerOS/
-├── backend/
-│   ├── agents/          # 6 AI agents + research discovery
-│   ├── crews/           # Multi-agent orchestration
-│   ├── tools/           # LinkedIn, GitHub, Email, Google Scholar, arXiv
-│   ├── api/             # FastAPI routes
-│   ├── models/          # Campaign (RESEARCH) + Contact (RESEARCHER)
-│   ├── services/        # ChromaDB, Supabase, Redis
-│   └── config/          # Settings and prompts
-│
-├── frontend/
-│   ├── app/             # Next.js pages
-│   ├── components/      # React components
-│   ├── lib/             # API client, utilities
-│   └── stores/          # State management
-│
-└── docs/                # Documentation + Research module guide
-```
-
-## Usage
-
-### 1. Setup Your Profile
-
-```bash
-# Store your profile data
-POST /api/profile/store
-{
-  "skills": ["Python", "Machine Learning", ...],
-  "projects": [...],
-  "goals": [...]
-}
-```
-
-### 2. Discover Opportunities
-
-```bash
-# AI discovers and scores opportunities
-POST /api/opportunities/discover
-```
-
-### 3. Generate Outreach
-
-```bash
-# Generate personalized messages
-POST /api/messages/generate
-{
-  "contact_id": "...",
-  "context": "internship application"
-}
-```
-
-### 4. Approve & Send
-
-```bash
-# Review and approve messages
-POST /api/messages/{id}/approve
-```
-
-## Key Metrics
-
-- **20-30%** response rate on outreach
-- **15-20** quality outreach per day
-- **0** platform violations
-- **10+** hours saved per week
-
-## Safety & Compliance
-
-- ✅ Platform rate limits enforced
-- ✅ Human-in-loop approval for all messages
-- ✅ Personalization score threshold (70+)
-- ✅ Human-like timing and behavior
-- ✅ Respects rejection signals
-
-## Deployment
-
-### Backend (Railway)
-
-```bash
-# Deploy to Railway
-railway init
-railway up
-```
-
-### Frontend (Vercel)
-
-```bash
-# Deploy to Vercel
-vercel deploy
-```
-
-See `docs/deployment.md` for detailed instructions.
-
-## Development
-
-### Run Tests
-
-```bash
-# Backend
-pytest
-
-# Frontend
-npm test
-```
-
-### Code Style
-
-```bash
-# Backend
-black .
-flake8 .
-
-# Frontend
-npm run lint
-```
-
-## Environment Variables
-
-### Backend (.env)
-```
-OPENAI_API_KEY=sk-...
-SUPABASE_URL=https://...
-SUPABASE_KEY=...
-DATABASE_URL=postgresql://...
-REDIS_URL=redis://...
-SECRET_KEY=...
-```
-
-### Frontend (.env.local)
-```
-NEXT_PUBLIC_API_URL=http://localhost:8000
-NEXT_PUBLIC_SUPABASE_URL=https://...
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-```
+*   [Getting Started](GETTING_STARTED.md): Detailed setup and usage guide.
+*   [Deployment Guide](docs/DEPLOYMENT.md): Instructions for deploying to Railway and Vercel.
+*   [API Reference](docs/API.md): Endpoint documentation.
+*   [Contributing](CONTRIBUTING.md): Guidelines for code contributions.
+*   [Research Module](RESEARCH_MODULE.md): Documentation for the academic discovery features.
 
 ## License
 
-MIT License - see LICENSE file for details
-
-## Contributing
-
-Contributions welcome! Please read CONTRIBUTING.md first.
-
-## Support
-
-- 📧 Email: support@careeros.dev
-- 🐛 Issues: GitHub Issues
-- 💬 Discord: [Join our community]
-
----
-
-**Built with ❤️ for ambitious professionals**
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.

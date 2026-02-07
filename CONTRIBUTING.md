@@ -1,24 +1,29 @@
 # Contributing to CareerOS
 
-Thank you for your interest in contributing to CareerOS! This document provides guidelines for contributions.
+![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=for-the-badge)
+![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg?style=for-the-badge)
+
+Thank you for your interest in contributing to CareerOS. This document provides guidelines for contributions to ensure quality and consistency.
 
 ## Code of Conduct
 
-Be respectful, inclusive, and professional in all interactions.
+All contributors are expected to adhere to professional standards. Be respectful, inclusive, and constructive in all interactions.
 
 ## Getting Started
 
-1. **Fork the repository**
-2. **Clone your fork**
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/career-os.git
-   cd career-os
-   ```
-3. **Set up development environment** (see GETTING_STARTED.md)
+1.  **Fork the repository**
+2.  **Clone your fork**
+    ```bash
+    git clone https://github.com/YOUR_USERNAME/career-os.git
+    cd career-os
+    ```
+3.  **Set up development environment** (see [GETTING_STARTED.md](GETTING_STARTED.md))
 
 ## Development Workflow
 
 ### 1. Create a Branch
+
+Create a new branch for your feature or fix:
 
 ```bash
 git checkout -b feature/your-feature-name
@@ -26,19 +31,19 @@ git checkout -b feature/your-feature-name
 git checkout -b fix/bug-description
 ```
 
-Branch naming:
-- `feature/` - New features
-- `fix/` - Bug fixes
-- `docs/` - Documentation
-- `refactor/` - Code refactoring
-- `test/` - Test additions
+**Branch Naming Convention:**
+*   `feature/`: New features
+*   `fix/`: Bug fixes
+*   `docs/`: Documentation updates
+*   `refactor/`: Code restructuring
+*   `test/`: Adding missing tests
 
 ### 2. Make Changes
 
-- Write clean, documented code
-- Follow existing code style
-- Add tests for new features
-- Update documentation
+*   Write clean, documented code.
+*   Follow the existing code style (Black for Python, Prettier/ESLint for TypeScript).
+*   Add unit tests for any new logic.
+*   Update documentation if parameters or behavior changes.
 
 ### 3. Test Your Changes
 
@@ -67,53 +72,53 @@ git commit -m "fix: resolve rate limiting bug"
 git commit -m "docs: update API documentation"
 ```
 
-Types:
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation
-- `style`: Formatting
-- `refactor`: Code restructuring
-- `test`: Tests
-- `chore`: Maintenance
+**Types:**
+*   `feat`: New feature
+*   `fix`: Bug fix
+*   `docs`: Documentation
+*   `style`: Formatting
+*   `refactor`: Code restructuring
+*   `test`: Tests
+*   `chore`: Maintenance
 
-### 5. Push and Create PR
+### 5. Push and Create Pull Request
 
 ```bash
 git push origin feature/your-feature-name
 ```
 
-Then create a Pull Request on GitHub.
+Open a Pull Request on GitHub targeting the `main` branch.
 
 ## Code Style
 
 ### Python (Backend)
 
-- Use Black for formatting
-- Follow PEP 8
-- Type hints encouraged
-- Docstrings for all functions
+*   **Formatter**: Black
+*   **Linter**: Flake8
+*   **Style**: PEP 8
+*   **Typing**: Strict type hints required for all function signatures.
+*   **Docstrings**: All public functions and classes must have docstrings.
 
 ```python
-def calculate_score(message: str, contact: Dict) -> int:
+def calculate_score(message: str, contact: Dict[str, Any]) -> int:
     """
-    Calculate personalization score.
-    
+    Calculate personalization score derived from message content.
+
     Args:
-        message: The message text
-        contact: Contact information
-    
+        message: The message text.
+        contact: Contact information dictionary.
+
     Returns:
-        Score from 0-100
+        Integer score from 0 to 100.
     """
     pass
 ```
 
 ### TypeScript (Frontend)
 
-- Use ESLint
-- Functional components with hooks
-- Type everything
-- Document complex logic
+*   **Linter**: ESLint
+*   **Style**: Functional components with hooks.
+*   **Typing**: Strict interfaces for all props and state.
 
 ```typescript
 interface Contact {
@@ -127,165 +132,21 @@ function ContactCard({ contact }: { contact: Contact }) {
 }
 ```
 
-## Testing
-
-### Backend Tests
-
-```python
-# tests/test_feature.py
-import pytest
-
-def test_feature():
-    result = my_function()
-    assert result == expected
-```
-
-Run tests:
-```bash
-pytest tests/ -v --cov
-```
-
-### Frontend Tests
-
-```typescript
-// __tests__/component.test.tsx
-import { render, screen } from '@testing/library/react';
-
-test('renders component', () => {
-  render(<Component />);
-  expect(screen.getByText('Hello')).toBeInTheDocument();
-});
-```
-
-## Documentation
-
-- Update README.md if adding features
-- Document API changes in docs/API.md
-- Add JSDoc/docstrings
-- Update GETTING_STARTED.md if setup changes
-
 ## Pull Request Guidelines
 
 ### PR Title
 
-Use conventional commit format:
-```
-feat: Add dark mode support
-fix: Resolve authentication bug
-docs: Update deployment guide
-```
+Use the conventional commit format:
+`type: Description of change` (e.g., `feat: Add dark mode support`)
 
 ### PR Description
 
-Include:
-- **What** - What changes were made
-- **Why** - Why these changes are needed
-- **How** - How the changes work
-- **Testing** - How you tested
-- **Screenshots** - For UI changes
-
-Template:
-```markdown
-## Description
-Brief description of changes
-
-## Type of Change
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Breaking change
-- [ ] Documentation
-
-## Testing
-- [ ] Tests pass locally
-- [ ] Added new tests
-- [ ] Manual testing completed
-
-## Screenshots (if applicable)
-```
-
-### Review Process
-
-1. Automated tests must pass
-2. Code review by maintainer
-3. Address feedback
-4. Approval and merge
-
-## Areas for Contribution
-
-### High Priority
-- [ ] Additional agent tools (Twitter, HackerNews)
-- [ ] Mobile app (React Native)
-- [ ] Advanced analytics dashboards
-- [ ] More outreach templates
-- [ ] Integration tests
-
-### Medium Priority
-- [ ] UI/UX improvements
-- [ ] Performance optimizations
-- [ ] Documentation improvements
-- [ ] Example use cases
-- [ ] Video tutorials
-
-### Good First Issues
-
-Look for issues tagged `good-first-issue`:
-- Documentation updates
-- Simple bug fixes
-- Test additions
-- UI polish
-
-## Development Tips
-
-### Hot Reload
-
-**Backend:**
-```bash
-uvicorn api.main:app --reload
-```
-
-**Frontend:**
-```bash
-npm run dev
-```
-
-### Debugging
-
-**Backend:**
-```python
-import pdb; pdb.set_trace()
-```
-
-**Frontend:**
-```typescript
-console.log('Debug:', variable);
-debugger;
-```
-
-### Database Changes
-
-1. Update models in `backend/models/`
-2. Create migration SQL
-3. Test locally
-4. Document in PR
-
-## Getting Help
-
-- **Questions:** GitHub Discussions
-- **Bugs:** GitHub Issues
-- **Chat:** Discord (link in README)
-- **Email:** dev@careeros.dev
-
-## Recognition
-
-Contributors will be:
-- Listed in CONTRIBUTORS.md
-- Mentioned in release notes
-- Given credit in documentation
+Please include:
+*   **Summary**: What changes were made.
+*   **Motivation**: Why these changes are necessary.
+*   **Implementation**: How the changes work.
+*   **Testing**: Verification steps performed.
 
 ## License
 
 By contributing, you agree that your contributions will be licensed under the MIT License.
-
-## Thank You!
-
-Every contribution helps make CareerOS better for everyone. Thank you for your time and effort! 🎉

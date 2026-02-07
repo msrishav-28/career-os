@@ -1,210 +1,104 @@
-# Getting Started with CareerOS
+# Getting Started
 
-This guide will help you get CareerOS up and running in under 30 minutes.
+![Python](https://img.shields.io/badge/Python-3.11%2B-blue?style=for-the-badge&logo=python&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-18%2B-green?style=for-the-badge&logo=node.js&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Enabled-blue?style=for-the-badge&logo=docker&logoColor=white)
 
-## Step 1: Prerequisites
+This guide details the steps to set up CareerOS locally for development and testing.
 
-Install the following:
-- **Python 3.10+**: Download from [python.org](https://python.org)
-- **Node.js 18+**: Download from [nodejs.org](https://nodejs.org)
-- **Git**: Download from [git-scm.com](https://git-scm.com)
+## Prerequisites
 
-## Step 2: Get API Keys
+Ensure the following tools are installed:
 
-### Required APIs
+*   **Python 3.10+**: [python.org](https://python.org)
+*   **Node.js 18+**: [nodejs.org](https://nodejs.org)
+*   **Git**: [git-scm.com](https://git-scm.com)
+*   **Docker** (Optional, for containerized setup)
 
-1. **OpenAI API Key**
-   - Go to [platform.openai.com](https://platform.openai.com)
-   - Create account and add payment method
-   - Generate API key
-   - Cost: ~$1-5/month for testing
+## API Keys & Accounts
 
-2. **Supabase Account**
-   - Go to [supabase.com](https://supabase.com)
-   - Create free account
-   - Create new project
-   - Note URL and anon key
+1.  **OpenAI API Key**: Required for AI agents. Sign up at [platform.openai.com](https://platform.openai.com).
+2.  **Supabase Account**: Required for the database. Create a new project at [supabase.com](https://supabase.com) and note the `Project URL` and `anon public` key.
 
-### Optional APIs (for full functionality)
+## Installation Steps
 
-3. **Resend** (for email sending)
-   - Go to [resend.com](https://resend.com)
-   - 10,000 emails/month free
+### 1. Database Setup
 
-## Step 3: Setup Backend
+1.  Log in to the Supabase Dashboard.
+2.  Navigate to the **SQL Editor**.
+3.  Execute the migration script located at `backend/scripts/setup_db.sql`.
+4.  Verify that tables (users, contacts, etc.) are created.
+
+### 2. Backend Setup
 
 ```bash
-# Clone repository
-git clone <your-repo-url>
-cd CareerOS/backend
+# Clone the repository
+git clone https://github.com/msrishav-28/career-os.git
+cd career-os/backend
 
-# Create virtual environment (Windows)
+# Create virtual environment
 python -m venv venv
-venv\Scripts\activate
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Configure environment
-copy .env.example .env
-
-# Edit .env file with your credentials:
-# - OPENAI_API_KEY
-# - SUPABASE_URL
-# - SUPABASE_KEY
-# - DATABASE_URL (from Supabase)
-# - SECRET_KEY (generate with: openssl rand -hex 32)
+# Configure Environment
+cp .env.example .env
 ```
 
-## Step 4: Setup Database
+Edit the `.env` file with your credentials:
+```env
+OPENAI_API_KEY=sk-...
+SUPABASE_URL=https://...
+SUPABASE_KEY=...
+DATABASE_URL=postgresql://...
+SECRET_KEY=...
+```
 
-1. Open Supabase Dashboard
-2. Go to SQL Editor
-3. Copy content from `backend/scripts/setup_db.sql`
-4. Paste and run in SQL Editor
-5. Verify tables created successfully
-
-## Step 5: Start Backend
-
+**Start the Backend:**
 ```bash
-cd backend
 uvicorn api.main:app --reload --port 8000
 ```
+The API will be available at `http://localhost:8000`.
 
-Visit http://localhost:8000/docs to see API documentation.
+### 3. Frontend Setup
 
-## Step 6: Setup Frontend
-
-Open a new terminal:
+Open a new terminal window:
 
 ```bash
-cd CareerOS/frontend
+cd career-os/frontend
 
 # Install dependencies
 npm install
 
-# Configure environment
-copy .env.local.example .env.local
+# Configure Environment
+cp .env.local.example .env.local
+```
 
-# Edit .env.local:
-# - NEXT_PUBLIC_API_URL=http://localhost:8000
-# - NEXT_PUBLIC_SUPABASE_URL
-# - NEXT_PUBLIC_SUPABASE_ANON_KEY
+Edit `.env.local`:
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+```
 
-# Start development server
+**Start the Frontend:**
+```bash
 npm run dev
 ```
+The application will be available at `http://localhost:3000`.
 
-Visit http://localhost:3000
+## Verification
 
-## Step 7: First Use
+To verify the setup is working:
 
-### 1. Create Your Profile
-
-```bash
-# Use API or frontend to store your profile
-curl -X POST "http://localhost:8000/api/profile/store?user_id=demo-user" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "skills": ["Python", "Machine Learning", "FastAPI"],
-    "projects": [
-      {
-        "name": "AI Chatbot",
-        "description": "Built using GPT-4",
-        "tech_stack": "Python, OpenAI, FastAPI"
-      }
-    ],
-    "goals": [
-      {
-        "goal": "Land AI/ML internship",
-        "priority": "high",
-        "deadline": "2026-03-01"
-      }
-    ],
-    "experiences": [],
-    "education": [],
-    "interests": ["AI", "Machine Learning", "Startups"],
-    "achievements": []
-  }'
-```
-
-### 2. Discover Opportunities
-
-```bash
-curl -X POST "http://localhost:8000/api/opportunities/discover?user_id=demo-user&keywords=AI%20ML%20internship&location=India"
-```
-
-### 3. Generate Outreach Message
-
-First, create a contact:
-
-```bash
-curl -X POST "http://localhost:8000/api/contacts/?user_id=demo-user" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "John Smith",
-    "company": "Google",
-    "title": "ML Engineer",
-    "contact_type": "career",
-    "quality_score": 8
-  }'
-```
-
-Then generate message (use contact_id from response):
-
-```bash
-curl -X POST "http://localhost:8000/api/messages/generate?user_id=demo-user&contact_id=<contact-id>&context=internship%20application"
-```
+1.  **Frontend**: Open `http://localhost:3000`. The dashboard should load.
+2.  **API**: Open `http://localhost:8000/docs`. You should see the Swagger UI.
+3.  **Database**: Create a profile in the app and check Supabase to confirm the data is saved.
 
 ## Troubleshooting
 
-### Backend Issues
-
-**Error: "Cannot connect to database"**
-- Check SUPABASE_URL and DATABASE_URL in .env
-- Verify database tables created correctly
-
-**Error: "OpenAI API key invalid"**
-- Check OPENAI_API_KEY in .env
-- Ensure you have credits in OpenAI account
-
-### Frontend Issues
-
-**Error: "Cannot connect to API"**
-- Ensure backend is running on port 8000
-- Check NEXT_PUBLIC_API_URL in .env.local
-
-**Build errors**
-- Delete node_modules and package-lock.json
-- Run `npm install` again
-
-### Redis Issues
-
-**Error: "Cannot connect to Redis"**
-- Install Redis locally or use Redis Cloud free tier
-- Update REDIS_URL in .env
-
-## Next Steps
-
-1. **Customize Agents**: Edit prompts in `backend/config/prompts.py`
-2. **Add More Tools**: Create new tools in `backend/tools/`
-3. **Build UI**: Customize frontend components
-4. **Deploy**: Follow deployment guide for production
-
-## Getting Help
-
-- 📖 Read full documentation in `/docs`
-- 🐛 Report issues on GitHub
-- 💬 Join Discord community
-- 📧 Email: support@careeros.dev
-
-## Success Checklist
-
-- [ ] Backend running on port 8000
-- [ ] Frontend running on port 3000
-- [ ] Database tables created
-- [ ] Profile stored successfully
-- [ ] Can discover opportunities
-- [ ] Can generate messages
-
-Congratulations! You're ready to use CareerOS! 🎉
+*   **Connection Refused**: Ensure the backend is running on port 8000.
+*   **Database Error**: Verify `DATABASE_URL` is correct and IP access is allowed in Supabase settings.
+*   **OpenAI Error**: Check if your API key has available credits.
