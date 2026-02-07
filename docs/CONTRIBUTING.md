@@ -17,7 +17,7 @@ All contributors are expected to adhere to professional standards. Be respectful
     git clone https://github.com/YOUR_USERNAME/career-os.git
     cd career-os
     ```
-3.  **Set up development environment** (see [GETTING_STARTED.md](GETTING_STARTED.md))
+3.  **Set up development environment** (see [GETTING_STARTED.md](../GETTING_STARTED.md))
 
 ## Development Workflow
 

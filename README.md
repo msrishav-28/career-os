@@ -67,8 +67,8 @@ The application will be available at:
 *   [Getting Started](GETTING_STARTED.md): Detailed setup and usage guide.
 *   [Deployment Guide](docs/DEPLOYMENT.md): Instructions for deploying to Railway and Vercel.
 *   [API Reference](docs/API.md): Endpoint documentation.
-*   [Contributing](CONTRIBUTING.md): Guidelines for code contributions.
-*   [Research Module](RESEARCH_MODULE.md): Documentation for the academic discovery features.
+*   [Contributing](docs/CONTRIBUTING.md): Guidelines for code contributions.
+*   [Research Module](docs/RESEARCH_MODULE.md): Documentation for the academic discovery features.
 
 ## License
 
