@@ -1,27 +1,40 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from models import CampaignCreate, CampaignUpdate, CampaignStatus
-from services import supabase_service
+from db import campaigns_repo, messages_repo
+from db.session import get_db_session
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
+import uuid
+from auth import get_current_user, CurrentUser
 
 router = APIRouter()
 
 
 @router.post("/")
-async def create_campaign(user_id: str, campaign: CampaignCreate):
+async def create_campaign(
+    campaign: CampaignCreate,
+    session: AsyncSession = Depends(get_db_session),
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Create a new campaign"""
     try:
-        result = await supabase_service.create_campaign(user_id, campaign.dict())
+        result = await campaigns_repo.create(session, uuid.UUID(current_user["id"]), campaign.dict())
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/")
-async def get_campaigns(user_id: str, status: Optional[CampaignStatus] = None):
+async def get_campaigns(
+    status: Optional[CampaignStatus] = None,
+    session: AsyncSession = Depends(get_db_session),
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Get campaigns"""
     try:
-        campaigns = await supabase_service.get_campaigns(
-            user_id,
+        campaigns = await campaigns_repo.list(
+            session,
+            uuid.UUID(current_user["id"]),
             status=status.value if status else None
         )
         return {"campaigns": campaigns, "count": len(campaigns)}
@@ -30,11 +43,12 @@ async def get_campaigns(user_id: str, status: Optional[CampaignStatus] = None):
 
 
 @router.put("/{campaign_id}")
-async def update_campaign(campaign_id: str, update: CampaignUpdate):
+async def update_campaign(campaign_id: str, update: CampaignUpdate, session: AsyncSession = Depends(get_db_session)):
     """Update a campaign"""
     try:
-        result = await supabase_service.update_campaign(
-            campaign_id,
+        result = await campaigns_repo.update(
+            session,
+            uuid.UUID(campaign_id),
             {k: v for k, v in update.dict().items() if v is not None}
         )
         return result
@@ -43,13 +57,18 @@ async def update_campaign(campaign_id: str, update: CampaignUpdate):
 
 
 @router.get("/{campaign_id}/metrics")
-async def get_campaign_metrics(campaign_id: str, user_id: str):
+async def get_campaign_metrics(
+    campaign_id: str,
+    session: AsyncSession = Depends(get_db_session),
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Get campaign performance metrics"""
     try:
         # Get all messages for campaign
-        messages = await supabase_service.get_messages(
-            user_id,
-            campaign_id=campaign_id,
+        messages = await messages_repo.list(
+            session,
+            uuid.UUID(current_user["id"]),
+            campaign_id=uuid.UUID(campaign_id),
             limit=1000
         )
         

@@ -20,8 +20,6 @@ cp .env.example .env
 
 Required environment variables:
 - `OPENAI_API_KEY` - OpenAI API key for GPT-4o-mini
-- `SUPABASE_URL` - Your Supabase project URL
-- `SUPABASE_KEY` - Supabase anon key
 - `DATABASE_URL` - PostgreSQL connection string
 - `SECRET_KEY` - Secret key for JWT (generate with `openssl rand -hex 32`)
 

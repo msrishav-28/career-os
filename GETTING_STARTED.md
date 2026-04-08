@@ -18,16 +18,24 @@ Ensure the following tools are installed:
 ## API Keys & Accounts
 
 1.  **OpenAI API Key**: Required for AI agents. Sign up at [platform.openai.com](https://platform.openai.com).
-2.  **Supabase Account**: Required for the database. Create a new project at [supabase.com](https://supabase.com) and note the `Project URL` and `anon public` key.
+2.  **Neon Account**: Required for the PostgreSQL database. Create a project at [neon.tech](https://neon.tech) and copy the connection string.
+3.  **Auth.js Provider**: Configure Email (SMTP) and/or GitHub OAuth for sign-in.
 
 ## Installation Steps
 
 ### 1. Database Setup
 
-1.  Log in to the Supabase Dashboard.
-2.  Navigate to the **SQL Editor**.
-3.  Execute the migration script located at `backend/scripts/setup_db.sql`.
-4.  Verify that tables (users, contacts, etc.) are created.
+CareerOS uses **Alembic migrations**.
+
+- Local: run Postgres via `docker-compose.yml`
+- Production: point `DATABASE_URL` to Neon
+
+Apply migrations:
+
+```bash
+cd backend
+alembic upgrade head
+```
 
 ### 2. Backend Setup
 
@@ -50,8 +58,6 @@ cp .env.example .env
 Edit the `.env` file with your credentials:
 ```env
 OPENAI_API_KEY=sk-...
-SUPABASE_URL=https://...
-SUPABASE_KEY=...
 DATABASE_URL=postgresql://...
 SECRET_KEY=...
 ```
@@ -79,8 +85,13 @@ cp .env.local.example .env.local
 Edit `.env.local`:
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000
-NEXT_PUBLIC_SUPABASE_URL=...
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+DATABASE_URL=postgresql://...
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=...
+GITHUB_ID=...
+GITHUB_SECRET=...
+EMAIL_SERVER=smtp://...
+EMAIL_FROM=...
 ```
 
 **Start the Frontend:**
@@ -95,7 +106,7 @@ To verify the setup is working:
 
 1.  **Frontend**: Open `http://localhost:3000`. The dashboard should load.
 2.  **API**: Open `http://localhost:8000/docs`. You should see the Swagger UI.
-3.  **Database**: Create a profile in the app and check Supabase to confirm the data is saved.
+3.  **Database**: Verify rows exist in Postgres after creating data in the app.
 
 ## Troubleshooting
 

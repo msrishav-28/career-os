@@ -1,20 +1,27 @@
 from typing import Dict, List, Tuple
 from datetime import datetime, timedelta
-from services import supabase_service
-import asyncio
+import uuid
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from db import campaigns_repo, contacts_repo, messages_repo, opportunities_repo
+from services import chroma_service
 
 
 class AnalyticsEngine:
     """Analytics engine for CareerOS metrics and insights"""
     
     @staticmethod
-    async def get_outreach_metrics(user_id: str, days: int = 30) -> Dict:
+    async def get_outreach_metrics(user_id: uuid.UUID, days: int = 30, session: AsyncSession | None = None) -> Dict:
         """Get comprehensive outreach metrics"""
         
+        if session is None:
+            raise RuntimeError("DB session is required")
+
         cutoff_date = (datetime.utcnow() - timedelta(days=days)).isoformat()
         
         # Get all messages in period
-        messages = await supabase_service.get_messages(user_id, limit=10000)
+        messages = await messages_repo.list(session, user_id, limit=10000)
         period_messages = [m for m in messages if m.get('created_at', '') >= cutoff_date]
         
         # Calculate metrics
@@ -83,10 +90,13 @@ class AnalyticsEngine:
         return [{'date': date, **stats} for date, stats in sorted(daily.items())]
     
     @staticmethod
-    async def get_pipeline_metrics(user_id: str) -> Dict:
+    async def get_pipeline_metrics(user_id: uuid.UUID, session: AsyncSession | None = None) -> Dict:
         """Get CRM pipeline metrics"""
         
-        contacts = await supabase_service.get_contacts(user_id, limit=10000)
+        if session is None:
+            raise RuntimeError("DB session is required")
+
+        contacts = await contacts_repo.list(session, user_id, limit=10000)
         
         # Count by status
         by_status = {}
@@ -121,17 +131,20 @@ class AnalyticsEngine:
         }
     
     @staticmethod
-    async def get_campaign_performance(user_id: str) -> List[Dict]:
+    async def get_campaign_performance(user_id: uuid.UUID, session: AsyncSession | None = None) -> List[Dict]:
         """Get performance metrics for all campaigns"""
         
-        campaigns = await supabase_service.get_campaigns(user_id)
+        if session is None:
+            raise RuntimeError("DB session is required")
+
+        campaigns = await campaigns_repo.list(session, user_id)
         performance = []
         
         for campaign in campaigns:
             campaign_id = campaign['id']
             
             # Get campaign messages
-            messages = await supabase_service.get_messages(user_id, campaign_id=campaign_id)
+            messages = await messages_repo.list(session, user_id, campaign_id=campaign_id)
             
             total_sent = len([m for m in messages if m.get('status') in ['sent', 'opened', 'replied']])
             total_replied = len([m for m in messages if m.get('status') == 'replied'])
@@ -153,10 +166,13 @@ class AnalyticsEngine:
         return performance
     
     @staticmethod
-    async def identify_skill_gaps(user_id: str) -> Dict:
+    async def identify_skill_gaps(user_id: uuid.UUID, session: AsyncSession | None = None) -> Dict:
         """Identify skill gaps based on viewed opportunities"""
         
-        opportunities = await supabase_service.get_opportunities(user_id, limit=1000)
+        if session is None:
+            raise RuntimeError("DB session is required")
+
+        opportunities = await opportunities_repo.list(session, user_id, limit=1000)
         
         # Extract all required skills
         all_requirements = []
@@ -195,10 +211,13 @@ class AnalyticsEngine:
         }
     
     @staticmethod
-    async def analyze_network_health(user_id: str) -> Dict:
+    async def analyze_network_health(user_id: uuid.UUID, session: AsyncSession | None = None) -> Dict:
         """Analyze network composition and health"""
         
-        contacts = await supabase_service.get_contacts(user_id, limit=10000)
+        if session is None:
+            raise RuntimeError("DB session is required")
+
+        contacts = await contacts_repo.list(session, user_id, limit=10000)
         
         # Analyze by tags
         all_tags = []
@@ -258,11 +277,11 @@ class AnalyticsEngine:
         return min(max(score, 1), 10)
     
     @staticmethod
-    async def get_goal_progress(user_id: str) -> List[Dict]:
+    async def get_goal_progress(user_id: uuid.UUID, session: AsyncSession | None = None) -> List[Dict]:
         """Track progress toward user goals"""
         
         # Get user profile
-        profile_results = chroma_service.query_user_profile(user_id, "goals", n_results=10)
+        profile_results = chroma_service.query_user_profile(str(user_id), "goals", n_results=10)
         
         goals = []
         for result in profile_results:

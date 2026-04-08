@@ -5,6 +5,7 @@ import { messagesAPI, contactsAPI, opportunitiesAPI } from '@/lib/api-client';
 import { Users, Mail, Briefcase, TrendingUp, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
+import { useSession } from 'next-auth/react';
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -15,26 +16,27 @@ export default function Dashboard() {
   });
   const [loading, setLoading] = useState(true);
 
-  const userId = 'demo-user'; // In production, get from auth
+  const { data: session } = useSession();
+  const userId = (session?.user as any)?.id as string | undefined;
 
   useEffect(() => {
-    loadDashboardData();
-  }, []);
+    if (userId) loadDashboardData(userId);
+  }, [userId]);
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = async (uid: string) => {
     try {
       setLoading(true);
       
       // Load contacts
-      const contactsRes = await contactsAPI.list(userId);
+      const contactsRes = await contactsAPI.list(uid);
       const contacts = contactsRes.data.contacts || [];
       
       // Load messages
-      const messagesRes = await messagesAPI.list(userId, { status: 'draft' });
+      const messagesRes = await messagesAPI.list(uid, { status: 'draft' });
       const pendingMessages = messagesRes.data.messages || [];
       
       // Load opportunities
-      const oppsRes = await opportunitiesAPI.getTop(userId, 10);
+      const oppsRes = await opportunitiesAPI.getTop(uid, 10);
       const opportunities = oppsRes.data.opportunities || [];
       
       setStats({

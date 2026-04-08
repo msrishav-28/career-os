@@ -2,7 +2,7 @@
 
 ![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)
 ![Next.js](https://img.shields.io/badge/next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)
-![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)
+![Neon](https://img.shields.io/badge/Neon-00E599?style=for-the-badge&logo=postgresql&logoColor=white)
 ![Railway](https://img.shields.io/badge/Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white)
 ![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)
 ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
@@ -16,19 +16,19 @@ Ensure you have the following accounts and tools ready:
 *   **GitHub Account**: To host the repository.
 *   **Railway Account**: For hosting the Backend and Redis.
 *   **Vercel Account**: For hosting the Frontend.
-*   **Supabase Account**: For the PostgreSQL database.
+*   **Neon Account**: For the PostgreSQL database.
 *   **OpenAI API Key**: For the AI agents.
 
-## 1. Database Setup (Supabase)
+## 1. Database Setup (Neon)
 
-1.  **Create Project**: Log in to Supabase and create a new project.
-2.  **Save Credentials**: Note down the `Project URL` and `anon public` key from the API settings. You will also need the `service_role` key (keep this secret) and your database password.
-3.  **Database Migration**:
-    *   Navigate to the SQL Editor in your Supabase dashboard.
-    *   Open the file `backend/scripts/setup_db.sql` from this repository.
-    *   Copy the entire content and paste it into the SQL Editor.
-    *   Click "Run" to execute the script.
-    *   **Verify**: Check the "Table Editor" to ensure tables like `users`, `contacts`, `opportunities`, etc., have been created.
+1.  **Create Project**: Log in to Neon and create a new project.
+2.  **Save Credentials**: Copy the Postgres connection string (`DATABASE_URL`).
+3.  **Run Migrations**:
+
+    ```bash
+    cd backend
+    alembic upgrade head
+    ```
 
 ## 2. Backend Deployment (Railway)
 
@@ -44,10 +44,7 @@ The backend is configured to run on Railway using the provided `railway.json` co
     | Variable | Description |
     | :--- | :--- |
     | `OPENAI_API_KEY` | Your OpenAI API key (sk-...) |
-    | `SUPABASE_URL` | Your Supabase Project URL |
-    | `SUPABASE_KEY` | Your Supabase `anon public` key |
-    | `SUPABASE_SERVICE_KEY` | Your Supabase `service_role` key |
-    | `DATABASE_URL` | Connection string from Supabase (under Database settings) |
+    | `DATABASE_URL` | Neon Postgres connection string |
     | `SECRET_KEY` | A long random string for security |
     | `REDIS_URL` | Connection string for Redis (see step 3) |
 
@@ -85,8 +82,13 @@ For background tasks (Celery agents), you need to run a worker process.
     | Variable | Description |
     | :--- | :--- |
     | `NEXT_PUBLIC_API_URL` | The Railway Backend URL (no trailing slash) |
-    | `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase Project URL |
-    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Your Supabase `anon public` key |
+    | `DATABASE_URL` | Neon Postgres connection string (for Auth.js adapter) |
+    | `NEXTAUTH_URL` | Your Vercel URL (e.g., `https://yourapp.vercel.app`) |
+    | `NEXTAUTH_SECRET` | Random secret for NextAuth |
+    | `GITHUB_ID` | GitHub OAuth client id (if using GitHub) |
+    | `GITHUB_SECRET` | GitHub OAuth secret |
+    | `EMAIL_SERVER` | SMTP connection string for email magic links |
+    | `EMAIL_FROM` | From address |
 
 4.  **Deploy**:
     *   Click "Deploy".
@@ -98,11 +100,11 @@ For background tasks (Celery agents), you need to run a worker process.
 1.  **Frontend Load**: The dashboard loads without errors.
 2.  **Login/Auth**: (If enabled) You can sign up/login.
 3.  **API Connectivity**: Check the browser network tab to ensure calls to `/api/...` are succeeding (200 OK).
-4.  **Database Connection**: Create a test contact or task to verify data persistence in Supabase.
+4.  **Database Connection**: Create a test contact or task to verify data persistence in Postgres (Neon).
 5.  **Agent Execution**: Trigger a "Discovery" task and check Railway logs to see the agents in action.
 
 ## Troubleshooting
 
 *   **CORS Errors**: If you see CORS errors in the browser console, ensure your Backend `api/main.py` has the Vercel domain added to the `allow_origins` list (or `["*"]` for testing).
 *   **Build Failures**: Check that you pointed Vercel to the `frontend` directory, not the root.
-*   **Database Errors**: Ensure you ran the `setup_db.sql` script.
+*   **Database Errors**: Ensure you ran `alembic upgrade head`.

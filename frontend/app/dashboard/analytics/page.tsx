@@ -5,23 +5,25 @@ import { apiClient } from '@/lib/api-client';
 import { TrendingUp, TrendingDown, Users, Mail, Target, Award } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import toast from 'react-hot-toast';
+import { useSession } from 'next-auth/react';
 
 export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [analytics, setAnalytics] = useState<any>(null);
   const [timeRange, setTimeRange] = useState(30);
 
-  const userId = 'demo-user';
+  const { data: session } = useSession();
+  const userId = (session?.user as any)?.id as string | undefined;
 
   useEffect(() => {
-    loadAnalytics();
-  }, [timeRange]);
+    if (userId) loadAnalytics(userId);
+  }, [timeRange, userId]);
 
-  const loadAnalytics = async () => {
+  const loadAnalytics = async (uid: string) => {
     try {
       setLoading(true);
       
-      const response = await apiClient.get(`/analytics/dashboard?user_id=${userId}&days=${timeRange}`);
+      const response = await apiClient.get(`/analytics/dashboard?days=${timeRange}`);
       setAnalytics(response.data);
       
     } catch (error) {

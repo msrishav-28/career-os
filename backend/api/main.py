@@ -1,11 +1,19 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from config.settings import settings
 import sentry_sdk
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text
+from db.session import get_db_session
+from services import redis_service
 
 # Initialize Sentry if configured
 if settings.SENTRY_DSN:
-    sentry_sdk.init(dsn=settings.SENTRY_DSN, environment=settings.ENVIRONMENT)
+    sentry_sdk.init(
+        dsn=settings.SENTRY_DSN,
+        environment=settings.ENVIRONMENT,
+        release=settings.SENTRY_RELEASE,
+    )
 
 # Create FastAPI app
 app = FastAPI(
@@ -14,10 +22,17 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# CORS origins
+if settings.ENVIRONMENT.lower() in {"production", "prod"}:
+    allowed = [o.strip() for o in (settings.ALLOWED_ORIGINS or "").split(",") if o.strip()]
+    allow_origins = allowed if allowed else []
+else:
+    allow_origins = ["*"]
+
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify actual origins
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -46,9 +61,28 @@ async def root():
 
 
 @app.get("/health")
-async def health_check():
-    """Health check endpoint"""
-    return {"status": "healthy", "environment": settings.ENVIRONMENT}
+async def health_check(session: AsyncSession = Depends(get_db_session)):
+    """Health check endpoint (DB + Redis)"""
+    db_ok = False
+    redis_ok = False
+
+    try:
+        await session.execute(text("SELECT 1"))
+        db_ok = True
+    except Exception:
+        db_ok = False
+
+    try:
+        redis_ok = bool(redis_service.client.ping())
+    except Exception:
+        redis_ok = False
+
+    status_str = "healthy" if db_ok and redis_ok else "degraded"
+    return {
+        "status": status_str,
+        "environment": settings.ENVIRONMENT,
+        "checks": {"db": db_ok, "redis": redis_ok},
+    }
 
 
 if __name__ == "__main__":

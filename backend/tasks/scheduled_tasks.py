@@ -1,11 +1,18 @@
 from tasks.celery_app import celery_app
-from services import supabase_service, redis_service, chroma_service
+from services import redis_service, chroma_service
 from crews import DiscoveryCrew, OutreachCrew
 from agents.crm_agent import analyze_response_sentiment, calculate_contact_priority
 from typing import List, Dict
 import asyncio
 from datetime import datetime, timedelta
 import json
+import uuid
+
+from db import contacts_repo, insights_repo, messages_repo
+from db.session import get_sessionmaker
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @celery_app.task(name='tasks.scheduled_tasks.discover_opportunities_task')
@@ -54,16 +61,14 @@ def check_followups_task():
         async def run_check():
             results = []
             user_ids = ["demo-user"]
+            sessionmaker = get_sessionmaker()
             
             for user_id in user_ids:
                 # Get messages sent 7+ days ago with no response
                 cutoff_date = (datetime.utcnow() - timedelta(days=7)).isoformat()
                 
-                messages = await supabase_service.get_messages(
-                    user_id,
-                    status="sent",
-                    limit=100
-                )
+                async with sessionmaker() as session:
+                    messages = await messages_repo.list(session, uuid.UUID(user_id), status="sent", limit=100)
                 
                 followup_needed = []
                 for msg in messages:
@@ -76,11 +81,14 @@ def check_followups_task():
                         campaign_id = msg.get('campaign_id')
                         
                         # Count previous follow-ups
-                        all_messages = await supabase_service.get_messages(
-                            user_id,
-                            contact_id=contact_id,
-                            campaign_id=campaign_id
-                        )
+                        async with sessionmaker() as session:
+                            all_messages = await messages_repo.list(
+                                session,
+                                uuid.UUID(user_id),
+                                contact_id=contact_id,
+                                campaign_id=campaign_id,
+                                limit=1000,
+                            )
                         
                         followup_count = len([m for m in all_messages if 'follow' in m.get('subject', '').lower()])
                         
@@ -100,12 +108,12 @@ def check_followups_task():
             
             return results
         
-        loop = asyncio.get_event_loop()
-        results = loop.run_until_complete(run_check())
+        results = asyncio.run(run_check())
         
         return {"task": "check_followups", "results": results}
     
     except Exception as e:
+        logger.exception("check_followups_task failed")
         return {"task": "check_followups", "error": str(e), "status": "failed"}
 
 
@@ -116,14 +124,12 @@ def send_approved_messages_task():
         async def run_send():
             results = []
             user_ids = ["demo-user"]
+            sessionmaker = get_sessionmaker()
             
             for user_id in user_ids:
                 # Get approved messages
-                messages = await supabase_service.get_messages(
-                    user_id,
-                    status="approved",
-                    limit=50
-                )
+                async with sessionmaker() as session:
+                    messages = await messages_repo.list(session, uuid.UUID(user_id), status="approved", limit=50)
                 
                 sent_count = 0
                 for msg in messages:
@@ -148,22 +154,11 @@ def send_approved_messages_task():
                         continue
                     
                     # Update message status to sent
-                    await supabase_service.update_message(
-                        msg['id'],
-                        {
-                            "status": "sent",
-                            "sent_at": datetime.utcnow().isoformat()
-                        }
-                    )
+                    async with sessionmaker() as session:
+                        await messages_repo.mark_sent_if_approved(session, msg["id"], datetime.utcnow())
                     
                     # Log activity
-                    await supabase_service.log_activity(
-                        user_id,
-                        action_type,
-                        platform,
-                        True,
-                        {"message_id": msg['id']}
-                    )
+                    # TODO: implement ActivityLog repo; tracked in later hardening phase.
                     
                     sent_count += 1
                 
@@ -174,12 +169,12 @@ def send_approved_messages_task():
             
             return results
         
-        loop = asyncio.get_event_loop()
-        results = loop.run_until_complete(run_send())
+        results = asyncio.run(run_send())
         
         return {"task": "send_approved_messages", "results": results}
     
     except Exception as e:
+        logger.exception("send_approved_messages_task failed")
         return {"task": "send_approved_messages", "error": str(e), "status": "failed"}
 
 
@@ -222,14 +217,16 @@ def generate_weekly_report_task():
         async def run_report():
             results = []
             user_ids = ["demo-user"]
+            sessionmaker = get_sessionmaker()
             
             for user_id in user_ids:
                 # Get activity stats for past week
-                stats = await supabase_service.get_activity_stats(user_id, days=7)
+                stats = {}  # TODO: implement activity log metrics from Postgres
                 
                 # Get messages sent this week
                 week_ago = (datetime.utcnow() - timedelta(days=7)).isoformat()
-                messages = await supabase_service.get_messages(user_id, limit=1000)
+                async with sessionmaker() as session:
+                    messages = await messages_repo.list(session, uuid.UUID(user_id), limit=1000)
                 
                 week_messages = [m for m in messages if m.get('sent_at', '') >= week_ago]
                 
@@ -240,7 +237,8 @@ def generate_weekly_report_task():
                 response_rate = (total_replied / total_sent * 100) if total_sent > 0 else 0
                 
                 # Get contacts added
-                contacts = await supabase_service.get_contacts(user_id, limit=1000)
+                async with sessionmaker() as session:
+                    contacts = await contacts_repo.list(session, uuid.UUID(user_id), limit=1000)
                 week_contacts = [c for c in contacts if c.get('created_at', '') >= week_ago]
                 
                 report = {
@@ -253,14 +251,7 @@ def generate_weekly_report_task():
                 }
                 
                 # Store report
-                await supabase_service.client.table('agent_insights').insert({
-                    "user_id": user_id,
-                    "insight_type": "weekly_report",
-                    "title": f"Weekly Report - {report['week_ending']}",
-                    "description": json.dumps(report),
-                    "priority": "medium",
-                    "status": "new"
-                }).execute()
+                # TODO: implement create insight repo method in later phase.
                 
                 results.append({
                     "user_id": user_id,
@@ -269,12 +260,12 @@ def generate_weekly_report_task():
             
             return results
         
-        loop = asyncio.get_event_loop()
-        results = loop.run_until_complete(run_report())
+        results = asyncio.run(run_report())
         
         return {"task": "generate_weekly_report", "results": results}
     
     except Exception as e:
+        logger.exception("generate_weekly_report_task failed")
         return {"task": "generate_weekly_report", "error": str(e), "status": "failed"}
 
 
@@ -285,14 +276,12 @@ def analyze_responses_task():
         async def run_analysis():
             results = []
             user_ids = ["demo-user"]
+            sessionmaker = get_sessionmaker()
             
             for user_id in user_ids:
                 # Get messages with recent replies
-                messages = await supabase_service.get_messages(
-                    user_id,
-                    status="replied",
-                    limit=100
-                )
+                async with sessionmaker() as session:
+                    messages = await messages_repo.list(session, uuid.UUID(user_id), status="replied", limit=100)
                 
                 analyzed_count = 0
                 for msg in messages:
@@ -301,22 +290,20 @@ def analyze_responses_task():
                         sentiment_data = analyze_response_sentiment(msg['reply_content'])
                         
                         # Update message
-                        await supabase_service.update_message(
-                            msg['id'],
-                            {
-                                "sentiment": sentiment_data['sentiment'],
-                                "metadata": sentiment_data
-                            }
-                        )
+                        async with sessionmaker() as session:
+                            await messages_repo.update(
+                                session,
+                                msg["id"],
+                                {"sentiment": sentiment_data["sentiment"], "metadata": sentiment_data},
+                            )
                         
                         # Update contact priority
-                        contact = await supabase_service.get_contact_by_id(msg['contact_id'])
+                        async with sessionmaker() as session:
+                            contact = await contacts_repo.get(session, msg["contact_id"])
                         if contact:
                             priority = calculate_contact_priority(contact, [msg])
-                            await supabase_service.update_contact(
-                                msg['contact_id'],
-                                {"quality_score": priority}
-                            )
+                            async with sessionmaker() as session:
+                                await contacts_repo.update(session, msg["contact_id"], {"quality_score": priority})
                         
                         analyzed_count += 1
                 
@@ -327,10 +314,10 @@ def analyze_responses_task():
             
             return results
         
-        loop = asyncio.get_event_loop()
-        results = loop.run_until_complete(run_analysis())
+        results = asyncio.run(run_analysis())
         
         return {"task": "analyze_responses", "results": results}
     
     except Exception as e:
+        logger.exception("analyze_responses_task failed")
         return {"task": "analyze_responses", "error": str(e), "status": "failed"}

@@ -1,15 +1,21 @@
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
 from tasks import agent_tasks, scheduled_tasks
 from typing import Optional, Dict
+from auth import get_current_user, CurrentUser
+from auth.admin import require_admin
 
 router = APIRouter()
 
 
 @router.post("/outreach/generate-async")
-async def generate_outreach_async(user_id: str, contact_id: str, context: str):
+async def generate_outreach_async(
+    contact_id: str,
+    context: str,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Generate outreach message asynchronously"""
     try:
-        result = agent_tasks.generate_outreach_async.delay(user_id, contact_id, context)
+        result = agent_tasks.generate_outreach_async.delay(current_user["id"], contact_id, context)
         return {
             "message": "Outreach generation started",
             "task_id": result.id,
@@ -20,10 +26,14 @@ async def generate_outreach_async(user_id: str, contact_id: str, context: str):
 
 
 @router.post("/outreach/batch-generate")
-async def batch_generate_outreach(user_id: str, contact_ids: list, context: str):
+async def batch_generate_outreach(
+    contact_ids: list,
+    context: str,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Generate outreach for multiple contacts"""
     try:
-        result = agent_tasks.batch_generate_outreach.delay(user_id, contact_ids, context)
+        result = agent_tasks.batch_generate_outreach.delay(current_user["id"], contact_ids, context)
         return {
             "message": f"Batch generation started for {len(contact_ids)} contacts",
             "task_id": result.id,
@@ -34,10 +44,10 @@ async def batch_generate_outreach(user_id: str, contact_ids: list, context: str)
 
 
 @router.post("/opportunities/discover-async")
-async def discover_opportunities_async(user_id: str, search_params: Dict):
+async def discover_opportunities_async(search_params: Dict, current_user: CurrentUser = Depends(get_current_user)):
     """Discover opportunities asynchronously"""
     try:
-        result = agent_tasks.discover_opportunities_async.delay(user_id, search_params)
+        result = agent_tasks.discover_opportunities_async.delay(current_user["id"], search_params)
         return {
             "message": "Opportunity discovery started",
             "task_id": result.id,
@@ -48,10 +58,10 @@ async def discover_opportunities_async(user_id: str, search_params: Dict):
 
 
 @router.post("/followup/auto-generate")
-async def auto_generate_followup(user_id: str, message_id: str):
+async def auto_generate_followup(message_id: str, current_user: CurrentUser = Depends(get_current_user)):
     """Auto-generate follow-up message"""
     try:
-        result = agent_tasks.auto_followup_generation.delay(user_id, message_id)
+        result = agent_tasks.auto_followup_generation.delay(current_user["id"], message_id)
         return {
             "message": "Follow-up generation started",
             "task_id": result.id,
@@ -80,7 +90,7 @@ async def get_task_status(task_id: str):
 
 
 @router.post("/scheduled/trigger/{task_name}")
-async def trigger_scheduled_task(task_name: str):
+async def trigger_scheduled_task(task_name: str, admin_user: CurrentUser = Depends(require_admin)):
     """Manually trigger a scheduled task"""
     try:
         task_map = {

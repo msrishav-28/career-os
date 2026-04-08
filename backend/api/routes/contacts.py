@@ -1,16 +1,24 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from models import ContactCreate, ContactUpdate, ContactStatus, ContactType
-from services import supabase_service
+from db import contacts_repo
+from db.session import get_db_session
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
+import uuid
+from auth import get_current_user, CurrentUser
 
 router = APIRouter()
 
 
 @router.post("/")
-async def create_contact(user_id: str, contact: ContactCreate):
+async def create_contact(
+    contact: ContactCreate,
+    session: AsyncSession = Depends(get_db_session),
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Create a new contact"""
     try:
-        result = await supabase_service.create_contact(user_id, contact.dict())
+        result = await contacts_repo.create(session, uuid.UUID(current_user["id"]), contact.dict())
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -18,15 +26,17 @@ async def create_contact(user_id: str, contact: ContactCreate):
 
 @router.get("/")
 async def get_contacts(
-    user_id: str,
     status: Optional[ContactStatus] = None,
     contact_type: Optional[ContactType] = None,
-    limit: int = Query(100, le=500)
+    limit: int = Query(100, le=500),
+    session: AsyncSession = Depends(get_db_session),
+    current_user: CurrentUser = Depends(get_current_user),
 ):
     """Get contacts with optional filters"""
     try:
-        contacts = await supabase_service.get_contacts(
-            user_id,
+        contacts = await contacts_repo.list(
+            session,
+            uuid.UUID(current_user["id"]),
             status=status.value if status else None,
             contact_type=contact_type.value if contact_type else None,
             limit=limit
@@ -37,10 +47,10 @@ async def get_contacts(
 
 
 @router.get("/{contact_id}")
-async def get_contact(contact_id: str):
+async def get_contact(contact_id: str, session: AsyncSession = Depends(get_db_session)):
     """Get a single contact by ID"""
     try:
-        contact = await supabase_service.get_contact_by_id(contact_id)
+        contact = await contacts_repo.get(session, uuid.UUID(contact_id))
         if not contact:
             raise HTTPException(status_code=404, detail="Contact not found")
         return contact
@@ -49,11 +59,12 @@ async def get_contact(contact_id: str):
 
 
 @router.put("/{contact_id}")
-async def update_contact(contact_id: str, update: ContactUpdate):
+async def update_contact(contact_id: str, update: ContactUpdate, session: AsyncSession = Depends(get_db_session)):
     """Update a contact"""
     try:
-        result = await supabase_service.update_contact(
-            contact_id,
+        result = await contacts_repo.update(
+            session,
+            uuid.UUID(contact_id),
             {k: v for k, v in update.dict().items() if v is not None}
         )
         return result
@@ -62,10 +73,13 @@ async def update_contact(contact_id: str, update: ContactUpdate):
 
 
 @router.get("/pipeline/summary")
-async def get_pipeline_summary(user_id: str):
+async def get_pipeline_summary(
+    session: AsyncSession = Depends(get_db_session),
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Get contact pipeline summary (count by status)"""
     try:
-        all_contacts = await supabase_service.get_contacts(user_id, limit=1000)
+        all_contacts = await contacts_repo.list(session, uuid.UUID(current_user["id"]), limit=1000)
         
         summary = {}
         for status in ContactStatus:

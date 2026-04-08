@@ -1,7 +1,13 @@
 from tasks.celery_app import celery_app
 from crews import OutreachCrew, DiscoveryCrew
-from services import supabase_service
 import asyncio
+import uuid
+
+from db import contacts_repo, messages_repo
+from db.session import get_sessionmaker
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @celery_app.task(name='tasks.agent_tasks.generate_outreach_async')
@@ -9,23 +15,23 @@ def generate_outreach_async(user_id: str, contact_id: str, context: str):
     """Async task to generate outreach message"""
     try:
         async def run_generation():
-            # Get contact
-            contact = await supabase_service.get_contact_by_id(contact_id)
-            if not contact:
-                return {"error": "Contact not found"}
+            sessionmaker = get_sessionmaker()
+            async with sessionmaker() as session:
+                contact = await contacts_repo.get(session, uuid.UUID(contact_id))
+                if not contact:
+                    return {"error": "Contact not found"}
             
-            # Generate message
-            crew = OutreachCrew(user_id)
-            result = crew.generate_outreach(contact, context)
+                crew = OutreachCrew(user_id)
+                result = crew.generate_outreach(contact, context)
             
-            return {"result": result, "contact_id": contact_id}
+                return {"result": result, "contact_id": contact_id}
         
-        loop = asyncio.get_event_loop()
-        result = loop.run_until_complete(run_generation())
+        result = asyncio.run(run_generation())
         
         return result
     
     except Exception as e:
+        logger.exception("generate_outreach_async failed")
         return {"error": str(e), "status": "failed"}
 
 
@@ -66,43 +72,42 @@ def auto_followup_generation(user_id: str, message_id: str):
     """Generate follow-up message automatically"""
     try:
         async def run_followup():
-            # Get original message
-            messages = await supabase_service.get_messages(user_id, limit=1000)
-            original_msg = next((m for m in messages if m['id'] == message_id), None)
+            sessionmaker = get_sessionmaker()
+            async with sessionmaker() as session:
+                messages = await messages_repo.list(session, uuid.UUID(user_id), limit=1000)
+                original_msg = next((m for m in messages if str(m["id"]) == message_id), None)
             
-            if not original_msg:
-                return {"error": "Message not found"}
+                if not original_msg:
+                    return {"error": "Message not found"}
             
-            # Get contact
-            contact = await supabase_service.get_contact_by_id(original_msg['contact_id'])
+                contact = await contacts_repo.get(session, original_msg["contact_id"])
             
-            # Generate follow-up with new angle
-            crew = OutreachCrew(user_id)
-            context = f"Follow-up to previous message about {original_msg.get('subject', 'our conversation')}"
+                crew = OutreachCrew(user_id)
+                context = f"Follow-up to previous message about {original_msg.get('subject', 'our conversation')}"
             
-            result = crew.generate_outreach(contact, context)
+                result = crew.generate_outreach(contact, context)
             
-            # Create draft message
-            if result:
-                await supabase_service.create_message(
-                    user_id,
-                    {
-                        "contact_id": contact['id'],
-                        "campaign_id": original_msg.get('campaign_id'),
-                        "platform": original_msg.get('platform'),
-                        "subject": f"Re: {original_msg.get('subject', '')}",
-                        "body": str(result),
-                        "personalization_score": 75,
-                        "status": "draft"
-                    }
-                )
+                if result and contact:
+                    await messages_repo.create(
+                        session,
+                        uuid.UUID(user_id),
+                        {
+                            "contact_id": contact["id"],
+                            "campaign_id": original_msg.get("campaign_id"),
+                            "platform": original_msg.get("platform"),
+                            "subject": f"Re: {original_msg.get('subject', '')}",
+                            "body": str(result),
+                            "personalization_score": 75,
+                            "status": "draft",
+                        },
+                    )
             
-            return {"followup_generated": True}
+                return {"followup_generated": True}
         
-        loop = asyncio.get_event_loop()
-        result = loop.run_until_complete(run_followup())
+        result = asyncio.run(run_followup())
         
         return result
     
     except Exception as e:
+        logger.exception("auto_followup_generation failed")
         return {"error": str(e), "status": "failed"}

@@ -15,39 +15,39 @@ Complete API reference for the CareerOS backend.
 
 ## Authentication
 
-Currently uses a simple `user_id` query parameter for demonstration. Production deployments should implement JWT authentication via the Authorization header.
+Uses **Auth.js (NextAuth) session tokens**. Requests must be authenticated (browser cookie `next-auth.session-token` / `__Secure-next-auth.session-token`), and the backend derives the user from the session. No endpoints accept `user_id` from clients.
 
 ## Resources
 
 ### Profile
 
 **Store Profile**
-`POST /api/profile/store?user_id={user_id}`
+`POST /api/profile/store`
 
 Stores user resume data, skills, and goals.
 *   **Body**: JSON object containing `skills`, `projects`, `experiences`, `goals`.
 *   **Returns**: 200 OK with confirmation.
 
 **Query Profile**
-`GET /api/profile/query?user_id={user_id}&query={query}`
+`GET /api/profile/query?query={query}`
 
 Semantic search against the user's profile using vector embeddings.
 
 ### Contacts (CRM)
 
 **Create Contact**
-`POST /api/contacts/?user_id={user_id}`
+`POST /api/contacts/`
 
 Adds a new person to the CRM.
 *   **Body**: `name`, `email`, `linkedin_url`, `company`, `contact_type`.
 
 **List Contacts**
-`GET /api/contacts/?user_id={user_id}&status={status}&limit={limit}`
+`GET /api/contacts/?status={status}&limit={limit}`
 
 Retrieves contacts with optional filtering.
 
 **Pipeline Summary**
-`GET /api/contacts/pipeline/summary?user_id={user_id}`
+`GET /api/contacts/pipeline/summary`
 
 Returns counts of contacts at each stage (discovered, contacted, responded).
 
@@ -57,7 +57,7 @@ Returns counts of contacts at each stage (discovered, contacted, responded).
 `POST /api/messages/generate`
 
 Uses LLMs to generate a personalized outreach message.
-*   **Params**: `user_id`, `contact_id`, `context` (e.g., "internship application").
+*   **Params**: `contact_id`, `context` (e.g., "internship application").
 *   **Returns**: A list of message drafts with personalization scores.
 
 **Create Message**
@@ -133,11 +133,10 @@ Example Python usage:
 import requests
 
 BASE_URL = "http://localhost:8000"
-USER_ID = "demo-user"
-
 # Create a contact
 response = requests.post(
-    f"{BASE_URL}/api/contacts/?user_id={USER_ID}",
+    f"{BASE_URL}/api/contacts/",
+    cookies={"next-auth.session-token": "<session-token>"},
     json={
         "name": "Jane Doe",
         "company": "Tech Corp",
