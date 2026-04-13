@@ -1,0 +1,81 @@
+# render.yaml — Render Blueprint for CareerOS Backend
+# https://docs.render.com/blueprint-spec
+#
+# This file lets you deploy the full backend stack with one click:
+#   Backend API + Celery Worker + PostgreSQL + Redis
+#
+# Deploy: Push to GitHub, then in Render Dashboard → New → Blueprint → select this repo.
+
+databases:
+  - name: careeros-db
+    plan: free            # free tier — 256 MB, 90-day lifespan
+    databaseName: careeros
+    user: careeros_user
+    ipAllowList: []       # only allow internal connections
+
+services:
+  # ── FastAPI Backend ───────────────────────────────────────────────────
+  - type: web
+    name: careeros-api
+    runtime: python
+    plan: free            # upgrade to starter ($7/mo) for production
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: careeros-db
+          property: connectionString
+        # Render gives a postgres:// URL; asyncpg needs postgresql+asyncpg://
+        # We handle this transformation in the app or use a startup script.
+      - key: REDIS_URL
+        fromService:
+          name: careeros-redis
+          type: redis
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        value: https://your-app.vercel.app    # ← UPDATE with your Vercel URL
+      - key: OPENAI_API_KEY
+        sync: false       # set manually in Render dashboard
+      - key: SENTRY_DSN
+        sync: false
+      - key: ADMIN_EMAILS
+        sync: false
+
+  # ── Celery Worker ─────────────────────────────────────────────────────
+  - type: worker
+    name: careeros-worker
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: celery -A tasks.celery_app worker --loglevel=info --pool=solo
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: careeros-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: careeros-redis
+          type: redis
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: OPENAI_API_KEY
+        sync: false
+
+  # ── Redis ─────────────────────────────────────────────────────────────
+  - type: redis
+    name: careeros-redis
+    plan: free             # 25 MB, no persistence
+    ipAllowList: []
+    maxmemoryPolicy: allkeys-lru

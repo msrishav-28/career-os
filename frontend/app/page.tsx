@@ -26,7 +26,7 @@ export default function SystemBoot() {
           </div>
           
           <h1 className="text-mega font-unbounded text-white mb-6 tracking-tight mix-blend-screen text-5xl sm:text-7xl md:text-8xl lg:text-[10rem]">
-            Career<span className="text-indigo-glow opacity-80">━━</span>OS
+            CareerOS
           </h1>
           
           <p className="text-body text-white/70 max-w-2xl mx-auto mb-12 text-lg md:text-xl font-light">

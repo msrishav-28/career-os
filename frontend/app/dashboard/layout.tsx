@@ -115,7 +115,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {/* Logo */}
           <div className="mb-6 mt-2">
             <Link href="/dashboard" className="text-white font-unbounded text-[10px] tracking-tighter leading-none text-center block">
-              C<span className="text-indigo-glow">━</span>OS
+              CareerOS
             </Link>
           </div>
 

@@ -60,7 +60,7 @@ export default function LoginPage() {
           {/* Logo */}
           <div className="text-center mb-10">
             <h1 className="text-4xl sm:text-5xl font-unbounded text-white tracking-tight">
-              Career<span className="text-indigo-glow opacity-80">━━</span>OS
+              CareerOS
             </h1>
           </div>
 
