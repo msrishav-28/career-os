@@ -1,0 +1,87 @@
+"""
+Sync ChromaDB from PostgreSQL.
+
+Per OPERATIONAL_RUNBOOK.md §5 — ChromaDB Out of Sync:
+  python scripts/sync_chromadb.py
+
+Ensures all contacts in PostgreSQL have corresponding
+embeddings in ChromaDB. Removes orphaned ChromaDB entries.
+"""
+import asyncio
+import sys
+import os
+import logging
+
+# Add backend to path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+logger = logging.getLogger(__name__)
+
+
+async def sync_chromadb():
+    """Run full sync between PostgreSQL and ChromaDB."""
+    from db.session import get_sessionmaker
+    from db import contacts_repo, users_repo
+    from services.sync_service import sync_service
+    from sqlalchemy import text
+
+    sessionmaker = get_sessionmaker()
+
+    async with sessionmaker() as session:
+        # Get all users
+        result = await session.execute(text("SELECT id FROM users"))
+        users = [row["id"] for row in result.mappings().all()]
+
+        logger.info(f"Found {len(users)} users to sync")
+
+        for user_id in users:
+            logger.info(f"Syncing user {user_id}...")
+
+            # Detect drift
+            drift = await sync_service.detect_drift(session, user_id)
+            logger.info(f"  Postgres contacts: {drift['postgres_count']}")
+            logger.info(f"  ChromaDB contacts: {drift['chromadb_count']}")
+
+            if drift.get("orphaned_in_chromadb"):
+                logger.warning(
+                    f"  Orphaned in ChromaDB: {len(drift['orphaned_in_chromadb'])}"
+                )
+                # Clean up orphaned entries
+                from services.chromadb_service import chroma_service
+                collection = chroma_service.network_collection
+                if collection:
+                    for cid in drift["orphaned_in_chromadb"]:
+                        try:
+                            results = collection.get(where={"contact_id": cid})
+                            if results and results.get("ids"):
+                                collection.delete(ids=results["ids"])
+                                logger.info(f"  Cleaned orphan: {cid}")
+                        except Exception as e:
+                            logger.warning(f"  Failed to clean orphan {cid}: {e}")
+
+            if drift.get("missing_in_chromadb"):
+                logger.warning(
+                    f"  Missing in ChromaDB: {len(drift['missing_in_chromadb'])}"
+                )
+                # Re-sync missing contacts
+                for cid in drift["missing_in_chromadb"]:
+                    try:
+                        from uuid import UUID
+                        contact = await contacts_repo.get(session, UUID(cid))
+                        if contact:
+                            await sync_service.sync_contact_create(
+                                session, user_id, contact
+                            )
+                            logger.info(f"  Re-synced contact: {cid}")
+                    except Exception as e:
+                        logger.warning(f"  Failed to re-sync {cid}: {e}")
+
+            if drift.get("in_sync"):
+                logger.info(f"  ✓ User {user_id} is in sync")
+
+    logger.info("Sync complete!")
+
+
+if __name__ == "__main__":
+    asyncio.run(sync_chromadb())
