@@ -1,8 +1,8 @@
 """
-Rebuild ChromaDB from PostgreSQL.
+Rebuild Vector DB from PostgreSQL.
 
 Per OPERATIONAL_RUNBOOK.md §Backup & Recovery:
-  python scripts/rebuild_chromadb.py
+  python scripts/rebuild_vector_db.py
 
 Re-generates all embeddings from PostgreSQL data.
 Takes ~10 minutes for 1000 contacts.
@@ -18,11 +18,11 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 logger = logging.getLogger(__name__)
 
 
-async def rebuild_chromadb():
-    """Rebuild ChromaDB from PostgreSQL data."""
+async def rebuild_vector_db():
+    """Rebuild Vector DB from PostgreSQL data."""
     from db.session import get_sessionmaker
     from db import contacts_repo
-    from services.chromadb_service import chroma_service
+    from services.vector_service import vector_service
     from services.sync_service import SyncService
     from sqlalchemy import text
 
@@ -34,7 +34,7 @@ async def rebuild_chromadb():
         result = await session.execute(text("SELECT id FROM users"))
         users = [row["id"] for row in result.mappings().all()]
 
-        logger.info(f"Rebuilding ChromaDB for {len(users)} users...")
+        logger.info(f"Rebuilding Vector DB for {len(users)} users...")
 
         total_contacts = 0
 
@@ -45,7 +45,7 @@ async def rebuild_chromadb():
             for i, contact in enumerate(contacts):
                 try:
                     contact_text = sync._build_contact_text(contact)
-                    chroma_service.store_network_insight(
+                    vector_service.store_network_insight(
                         str(user_id),
                         contact_text,
                         {
@@ -67,4 +67,4 @@ async def rebuild_chromadb():
 
 
 if __name__ == "__main__":
-    asyncio.run(rebuild_chromadb())
+    asyncio.run(rebuild_vector_db())

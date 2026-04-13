@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from models import UserProfile, UserSettings
-from services import chroma_service
+from services import vector_service
 from db import users_repo
 from db.session import get_db_session
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,7 +19,7 @@ async def store_profile(
 ):
     """Store user profile in vector database"""
     try:
-        chroma_service.store_user_profile(current_user["id"], profile.dict())
+        vector_service.store_user_profile(current_user["id"], profile.dict())
         
         await users_repo.update(session, uuid.UUID(current_user["id"]), {"profile_data": profile.dict()})
         
@@ -36,7 +36,7 @@ async def query_profile(
 ):
     """Query user profile memory"""
     try:
-        results = chroma_service.query_user_profile(current_user["id"], query, n_results)
+        results = vector_service.query_user_profile(current_user["id"], query, n_results)
         return {"results": results, "count": len(results)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -1,7 +1,7 @@
 from crewai_tools import BaseTool
 from typing import Type, List, Dict
 from pydantic import BaseModel, Field
-from services.chromadb_service import chroma_service
+from services.vector_service import vector_service
 
 
 class ProfileQueryInput(BaseModel):
@@ -13,13 +13,13 @@ class ProfileQueryInput(BaseModel):
 
 class ProfileQueryTool(BaseTool):
     name: str = "Query User Profile"
-    description: str = """Use this tool to search the user's profile memory for relevant skills, 
+    description: """Use this tool to search the user's profile memory for relevant skills, 
     projects, experiences, or goals. Provide a natural language query about what you're looking for.
     Example: 'What machine learning projects has the user built?'"""
     args_schema: Type[BaseModel] = ProfileQueryInput
     
     def _run(self, user_id: str, query: str, n_results: int = 5) -> str:
-        results = chroma_service.query_user_profile(user_id, query, n_results)
+        results = vector_service.query_user_profile(user_id, query, n_results)
         
         if not results:
             return "No relevant information found in user profile."
@@ -40,13 +40,13 @@ class StoreProfileInput(BaseModel):
 
 class StoreProfileTool(BaseTool):
     name: str = "Store User Profile"
-    description: str = """Store user profile information (skills, projects, experiences, goals) 
+    description: """Store user profile information (skills, projects, experiences, goals) 
     in the vector database for future retrieval."""
     args_schema: Type[BaseModel] = StoreProfileInput
     
     def _run(self, user_id: str, profile_data: dict) -> str:
         try:
-            chroma_service.store_user_profile(user_id, profile_data)
+            vector_service.store_user_profile(user_id, profile_data)
             return f"Successfully stored profile data for user {user_id}"
         except Exception as e:
             return f"Error storing profile: {str(e)}"
@@ -62,12 +62,12 @@ class TemplateQueryInput(BaseModel):
 
 class TemplateQueryTool(BaseTool):
     name: str = "Get Similar Outreach Templates"
-    description: str = """Retrieve successful outreach templates similar to the current context. 
+    description: """Retrieve successful outreach templates similar to the current context. 
     Useful for learning from past successful messages."""
     args_schema: Type[BaseModel] = TemplateQueryInput
     
     def _run(self, user_id: str, context: str, persona: str, n_results: int = 3) -> str:
-        results = chroma_service.get_similar_templates(user_id, context, persona, n_results)
+        results = vector_service.get_similar_templates(user_id, context, persona, n_results)
         
         if not results:
             return f"No similar templates found for persona '{persona}'."
@@ -91,12 +91,12 @@ class NetworkKnowledgeInput(BaseModel):
 
 class NetworkKnowledgeTool(BaseTool):
     name: str = "Query Network Intelligence"
-    description: str = """Search for insights about the user's network, such as engagement patterns, 
+    description: """Search for insights about the user's network, such as engagement patterns, 
     successful strategies, or information about contacts."""
     args_schema: Type[BaseModel] = NetworkKnowledgeInput
     
     def _run(self, user_id: str, query: str, n_results: int = 5) -> str:
-        results = chroma_service.query_network_knowledge(user_id, query, n_results)
+        results = vector_service.query_network_knowledge(user_id, query, n_results)
         
         if not results:
             return "No relevant network insights found."

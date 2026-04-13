@@ -1,5 +1,5 @@
 from crewai import Agent
-from tools.chromadb_tools import ProfileQueryTool, StoreProfileTool
+from tools.vector_tools import ProfileQueryTool, StoreProfileTool
 from config.prompts import (
     PROFILE_AGENT_ROLE,
     PROFILE_AGENT_GOAL,

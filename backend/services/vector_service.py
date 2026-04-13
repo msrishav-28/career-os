@@ -1,28 +1,44 @@
-import chromadb
-from chromadb.config import Settings
-from typing import List, Dict, Optional
 import uuid
+from typing import List, Dict, Optional
+import os
 from config.settings import settings
+from langchain_community.vectorstores.pgvector import PGVector
+from langchain_openai import OpenAIEmbeddings
 
-
-class ChromaDBService:
-    """Service for managing ChromaDB vector database operations"""
+class VectorDBService:
+    """Service for managing pgvector database operations via Langchain"""
     
     def __init__(self):
-        self.client = chromadb.Client(Settings(
-            chroma_db_impl="duckdb+parquet",
-            persist_directory=settings.CHROMA_PERSIST_DIR
-        ))
-        self.collections = {}
+        # PGVector requires synchronous engine driver like psycopg2
+        raw_url = settings.DATABASE_URL or ""
+        
+        # Format the URL for psycopg2
+        if raw_url.startswith("postgresql+asyncpg://"):
+            self.connection_string = raw_url.replace("postgresql+asyncpg://", "postgresql://", 1)
+        elif raw_url.startswith("postgres://"):
+            self.connection_string = raw_url.replace("postgres://", "postgresql://", 1)
+        else:
+            self.connection_string = raw_url
+
+        # Check for OpenAI key, throw warning if running locally without it but don't crash
+        # (It will crash on first call if key is invalid, which is expected)
+        self.embeddings = OpenAIEmbeddings(
+            model="text-embedding-3-small", 
+            api_key=settings.OPENAI_API_KEY or "dummy_key_to_allow_init"
+        )
+        
+        self.stores = {}
     
-    def get_or_create_collection(self, collection_name: str, metadata: Dict = None):
-        """Get or create a ChromaDB collection"""
-        if collection_name not in self.collections:
-            self.collections[collection_name] = self.client.get_or_create_collection(
-                name=collection_name,
-                metadata=metadata or {}
+    def _get_store(self, collection_name: str) -> PGVector:
+        """Get or initialize a PGVector store for a specific collection"""
+        if collection_name not in self.stores:
+            self.stores[collection_name] = PGVector(
+                connection_string=self.connection_string,
+                embedding_function=self.embeddings,
+                collection_name=collection_name,
+                use_jsonb=True
             )
-        return self.collections[collection_name]
+        return self.stores[collection_name]
     
     def add_documents(
         self,
@@ -32,13 +48,13 @@ class ChromaDBService:
         ids: Optional[List[str]] = None
     ):
         """Add documents to a collection"""
-        collection = self.get_or_create_collection(collection_name)
+        store = self._get_store(collection_name)
         
         if ids is None:
             ids = [str(uuid.uuid4()) for _ in documents]
         
-        collection.add(
-            documents=documents,
+        store.add_texts(
+            texts=documents,
             metadatas=metadatas,
             ids=ids
         )
@@ -52,14 +68,30 @@ class ChromaDBService:
         where: Optional[Dict] = None
     ) -> Dict:
         """Query documents from a collection"""
-        collection = self.get_or_create_collection(collection_name)
+        store = self._get_store(collection_name)
         
-        results = collection.query(
-            query_texts=[query_text],
-            n_results=n_results,
-            where=where
+        # PGVector using Langchain returns Document objects with page_content and metadata
+        docs_with_scores = store.similarity_search_with_score(
+            query=query_text,
+            k=n_results,
+            filter=where
         )
-        return results
+        
+        # Format results to match the old ChromaDB interface
+        formatted_documents = []
+        formatted_metadatas = []
+        formatted_distances = []
+        
+        for doc, score in docs_with_scores:
+            formatted_documents.append(doc.page_content)
+            formatted_metadatas.append(doc.metadata)
+            formatted_distances.append(score)
+            
+        return {
+            "documents": [formatted_documents],
+            "metadatas": [formatted_metadatas],
+            "distances": [formatted_distances]
+        }
     
     def update_document(
         self,
@@ -69,25 +101,30 @@ class ChromaDBService:
         metadata: Optional[Dict] = None
     ):
         """Update a document in a collection"""
-        collection = self.get_or_create_collection(collection_name)
-        
-        update_data = {"ids": [document_id]}
+        # Langchain PGVector doesn't have a direct update_document method in the older API.
+        # We must delete and re-add.
+        self.delete_documents(collection_name, [document_id])
         if document:
-            update_data["documents"] = [document]
-        if metadata:
-            update_data["metadatas"] = [metadata]
-        
-        collection.update(**update_data)
+            self.add_documents(collection_name, [document], [metadata or {}], [document_id])
     
     def delete_documents(self, collection_name: str, ids: List[str]):
         """Delete documents from a collection"""
-        collection = self.get_or_create_collection(collection_name)
-        collection.delete(ids=ids)
+        store = self._get_store(collection_name)
+        store.delete(ids=ids)
     
     def get_collection_count(self, collection_name: str) -> int:
         """Get number of documents in a collection"""
-        collection = self.get_or_create_collection(collection_name)
-        return collection.count()
+        store = self._get_store(collection_name)
+        # Using SQLAlchemy directly if we really need counts, but for now we can fall back to 0
+        # or implement a raw query if absolutely needed.
+        try:
+            with store.session_maker() as session:
+                from sqlalchemy import text
+                stmt = text(f"SELECT COUNT(*) FROM langchain_pg_embedding WHERE collection_id = (SELECT uuid FROM langchain_pg_collection WHERE name = :name)")
+                result = session.execute(stmt, {"name": collection_name}).scalar()
+                return result or 0
+        except Exception:
+            return 0
     
     # User Profile Memory Methods
     def store_user_profile(self, user_id: str, profile_data: Dict):
@@ -145,13 +182,13 @@ class ChromaDBService:
             
             # Format results
             formatted_results = []
-            for i in range(len(results['documents'][0])):
-                formatted_results.append({
-                    "content": results['documents'][0][i],
-                    "metadata": results['metadatas'][0][i],
-                    "distance": results['distances'][0][i] if 'distances' in results else None
-                })
-            
+            if results['documents'] and len(results['documents']) > 0:
+                for i in range(len(results['documents'][0])):
+                    formatted_results.append({
+                        "content": results['documents'][0][i],
+                        "metadata": results['metadatas'][0][i],
+                        "distance": results['distances'][0][i] if 'distances' in results else None
+                    })
             return formatted_results
         except Exception as e:
             print(f"Error querying profile: {e}")
@@ -197,12 +234,12 @@ class ChromaDBService:
             )
             
             formatted_results = []
-            for i in range(len(results['documents'][0])):
-                formatted_results.append({
-                    "template": results['documents'][0][i],
-                    "metadata": results['metadatas'][0][i]
-                })
-            
+            if results['documents'] and len(results['documents']) > 0:
+                for i in range(len(results['documents'][0])):
+                    formatted_results.append({
+                        "template": results['documents'][0][i],
+                        "metadata": results['metadatas'][0][i]
+                    })
             return formatted_results
         except Exception:
             return []
@@ -221,16 +258,15 @@ class ChromaDBService:
             results = self.query_documents(collection_name, query, n_results)
             
             formatted_results = []
-            for i in range(len(results['documents'][0])):
-                formatted_results.append({
-                    "insight": results['documents'][0][i],
-                    "metadata": results['metadatas'][0][i]
-                })
-            
+            if results['documents'] and len(results['documents']) > 0:
+                for i in range(len(results['documents'][0])):
+                    formatted_results.append({
+                        "insight": results['documents'][0][i],
+                        "metadata": results['metadatas'][0][i]
+                    })
             return formatted_results
         except Exception:
             return []
 
-
 # Singleton instance
-chroma_service = ChromaDBService()
+vector_service = VectorDBService()

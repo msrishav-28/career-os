@@ -1,4 +1,4 @@
-from .chromadb_tools import (
+from .vector_tools import (
     ProfileQueryTool,
     StoreProfileTool,
     TemplateQueryTool,
@@ -28,7 +28,7 @@ from .academic_tools import (
 )
 
 __all__ = [
-    # ChromaDB Tools
+    # Vector Tools
     'ProfileQueryTool',
     'StoreProfileTool',
     'TemplateQueryTool',

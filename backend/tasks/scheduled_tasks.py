@@ -1,5 +1,5 @@
 from tasks.celery_app import celery_app
-from services import redis_service, chroma_service
+from services import redis_service, vector_service
 from crews import DiscoveryCrew, OutreachCrew
 from agents.crm_agent import analyze_response_sentiment, calculate_contact_priority
 from typing import List, Dict

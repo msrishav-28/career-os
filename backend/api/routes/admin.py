@@ -5,7 +5,7 @@ Per OPERATIONAL_RUNBOOK.md — feature flag management via admin endpoints:
   - POST /admin/feature-flags/enable
   - POST /admin/feature-flags/disable
   - GET  /admin/feature-flags
-  - POST /admin/sync-chromadb  — trigger data sync
+  - POST /admin/sync-vectordb  — trigger data sync
 """
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
@@ -75,17 +75,17 @@ async def set_flag_override(
 # ---------------------------------------------------------------------------
 # Operational tools
 # ---------------------------------------------------------------------------
-@router.post("/sync-chromadb")
+@router.post("/sync-vectordb")
 async def trigger_sync(
     _admin: CurrentUser = Depends(require_admin),
 ):
     """
-    Trigger a ChromaDB sync job.
-    Per OPERATIONAL_RUNBOOK.md §5 — ChromaDB Out of Sync.
+    Trigger a Vector DB sync job.
+    Per OPERATIONAL_RUNBOOK.md §5 — Vector DB Out of Sync.
     """
     try:
-        from tasks.scheduled_tasks import sync_chromadb_task
-        result = sync_chromadb_task.delay()
+        from tasks.scheduled_tasks import sync_vectordb_task
+        result = sync_vectordb_task.delay()
         return {"success": True, "data": {"task_id": str(result.id), "status": "queued"}}
     except Exception as e:
         return {"success": False, "error": {"code": "SYNC_FAILED", "message": str(e)}}

@@ -5,7 +5,7 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db import campaigns_repo, contacts_repo, messages_repo, opportunities_repo
-from services import chroma_service
+from services import vector_service
 
 
 class AnalyticsEngine:
@@ -186,7 +186,7 @@ class AnalyticsEngine:
             skill_frequency[skill] = skill_frequency.get(skill, 0) + 1
         
         # Get user's current skills
-        user_profile = chroma_service.query_user_profile(user_id, "skills", n_results=1)
+        user_profile = vector_service.query_user_profile(str(user_id), "skills", n_results=1)
         user_skills = set()
         if user_profile:
             # Extract skills from profile
@@ -281,7 +281,7 @@ class AnalyticsEngine:
         """Track progress toward user goals"""
         
         # Get user profile
-        profile_results = chroma_service.query_user_profile(str(user_id), "goals", n_results=10)
+        profile_results = vector_service.query_user_profile(str(user_id), "goals", n_results=10)
         
         goals = []
         for result in profile_results:

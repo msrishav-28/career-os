@@ -1,11 +1,11 @@
 """
-Sync ChromaDB from PostgreSQL.
+Sync Vector DB from PostgreSQL.
 
-Per OPERATIONAL_RUNBOOK.md §5 — ChromaDB Out of Sync:
-  python scripts/sync_chromadb.py
+Per OPERATIONAL_RUNBOOK.md §5 — Vector DB Out of Sync:
+  python scripts/sync_vector_db.py
 
 Ensures all contacts in PostgreSQL have corresponding
-embeddings in ChromaDB. Removes orphaned ChromaDB entries.
+embeddings in Vector DB. Removes orphaned Vector DB entries.
 """
 import asyncio
 import sys
@@ -19,8 +19,8 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 logger = logging.getLogger(__name__)
 
 
-async def sync_chromadb():
-    """Run full sync between PostgreSQL and ChromaDB."""
+async def sync_vector_db():
+    """Run full sync between PostgreSQL and Vector DB."""
     from db.session import get_sessionmaker
     from db import contacts_repo, users_repo
     from services.sync_service import sync_service
@@ -40,32 +40,32 @@ async def sync_chromadb():
 
             # Detect drift
             drift = await sync_service.detect_drift(session, user_id)
-            logger.info(f"  Postgres contacts: {drift['postgres_count']}")
-            logger.info(f"  ChromaDB contacts: {drift['chromadb_count']}")
+            logger.info(f"  Postgres contacts: {drift.get('postgres_count', 0)}")
+            logger.info(f"  Vector DB contacts: {drift.get('vector_db_count', 0)}")
 
-            if drift.get("orphaned_in_chromadb"):
+            if drift.get("orphaned_in_vector_db"):
                 logger.warning(
-                    f"  Orphaned in ChromaDB: {len(drift['orphaned_in_chromadb'])}"
+                    f"  Orphaned in Vector DB: {len(drift['orphaned_in_vector_db'])}"
                 )
                 # Clean up orphaned entries
-                from services.chromadb_service import chroma_service
+                from services.vector_service import vector_service
                 collection = chroma_service.network_collection
                 if collection:
                     for cid in drift["orphaned_in_chromadb"]:
                         try:
                             results = collection.get(where={"contact_id": cid})
                             if results and results.get("ids"):
-                                collection.delete(ids=results["ids"])
+                                vector_service.delete_documents(f"network_knowledge_{user_id}", [cid]) # Fallback delete
                                 logger.info(f"  Cleaned orphan: {cid}")
                         except Exception as e:
                             logger.warning(f"  Failed to clean orphan {cid}: {e}")
 
-            if drift.get("missing_in_chromadb"):
+            if drift.get("missing_in_vector_db"):
                 logger.warning(
-                    f"  Missing in ChromaDB: {len(drift['missing_in_chromadb'])}"
+                    f"  Missing in Vector DB: {len(drift['missing_in_vector_db'])}"
                 )
                 # Re-sync missing contacts
-                for cid in drift["missing_in_chromadb"]:
+                for cid in drift["missing_in_vector_db"]:
                     try:
                         from uuid import UUID
                         contact = await contacts_repo.get(session, UUID(cid))
@@ -84,4 +84,4 @@ async def sync_chromadb():
 
 
 if __name__ == "__main__":
-    asyncio.run(sync_chromadb())
+    asyncio.run(sync_vector_db())

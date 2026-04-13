@@ -1,5 +1,5 @@
 from crewai import Agent
-from tools.chromadb_tools import ProfileQueryTool, TemplateQueryTool
+from tools.vector_tools import ProfileQueryTool, TemplateQueryTool
 from tools.email_tools import EmailTemplateTool
 from config.prompts import (
     OUTREACH_AGENT_ROLE,

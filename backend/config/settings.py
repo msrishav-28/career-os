@@ -17,8 +17,8 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
     
-    # ChromaDB
-    CHROMA_PERSIST_DIR: str = "./chroma_db"
+    # Vector DB
+    # Uses PGVector under the hood seamlessly
     
     # Email
     RESEND_API_KEY: Optional[str] = None
